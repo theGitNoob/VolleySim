@@ -1,12 +1,10 @@
-
 class FieldTeam:
-    def __init__(self, rows, cols,players):
+    def __init__(self, rows, cols, players):
         # Initialize the field as a matrix (2D list) with given dimensions (rows x cols)
         self.field = [[None for _ in range(cols)] for _ in range(rows)]
         self.players = players
-        self.currentPlayer=None
-        self.amount_of_passes=0
-        
+        self.currentPlayer = None
+        self.amount_of_passes = 0
 
     def assign_player(self, player_number, area):
         """
