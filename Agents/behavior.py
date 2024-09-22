@@ -3,7 +3,8 @@
 from typing import Tuple
 import random
 from ..Tools.line_up import LineUp
-from ..Tools.game import Game, GridField
+from ..Tools.game import Game
+from ..Tools.field import GridField
 from .actions import Action, Serve, Set, Attack, Block, Dig, Move, Receive, Nothing
 from ..Tools.enum import HOME, AWAY
 
@@ -73,14 +74,14 @@ class DefensiveBehavior(Behavior):
 
         return value
 
-    def is_front_row(self, position: Tuple[int, int], team: str, game: Game) -> bool:
+    @staticmethod
+    def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
         # Determina si la posición está en la fila delantera
         net_row = game.field.net_row
         if team == HOME:
-            return position[0] >= net_row - 3 and position[0] < net_row
+            return net_row - 3 <= position[0] < net_row
         else:
-            return position[0] > net_row and position[0] <= net_row + 3
-
+            return net_row < position[0] <= net_row + 3
 
 
 class OffensiveBehavior(Behavior):
@@ -114,13 +115,13 @@ class OffensiveBehavior(Behavior):
 
         return value
 
-    def is_front_row(self, position: Tuple[int, int], team: str, game: Game) -> bool:
+    @staticmethod
+    def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
         net_row = game.field.net_row
         if team == HOME:
-            return position[0] >= net_row - 3 and position[0] < net_row
+            return net_row - 3 <= position[0] < net_row
         else:
-            return position[0] > net_row and position[0] <= net_row + 3
-
+            return net_row < position[0] <= net_row + 3
 
 
 class AvoidFatigueBehavior(Behavior):
