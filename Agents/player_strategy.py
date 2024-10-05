@@ -1,45 +1,63 @@
-﻿from .actions import *
-from ..Tools.line_up import *
-from ..Tools.game import Game
+﻿from random import choice
+from typing import Callable
+
+from Tools.enum import PlayerRole
+
+from .actions import *
+from .behavior import Behavior, RandomBehavior
 from .simulator_agent import SimulatorAgent
-from ..Tools.enum import HOME, AWAY
-
-import random
-from typing import List, Callable
-from abc import ABC, abstractmethod
-from random import choice
-
-CANT_SIMULATIONS = 1
 
 
 class PlayerStrategy(ABC):
     @abstractmethod
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         pass
+
+
+class BehaviorStrategy(ABC):
+    def __init__(self) -> None:
+        super().__init__()
+        self.behaviors: List[Behavior] = []
+
+    def select_action_behavior(
+        self, actions: List[Action], simulator: SimulatorAgent
+    ) -> Action:
+        return max(
+            actions,
+            key=lambda a: sum([b.eval(a, simulator.game) for b in self.behaviors]),
+        )
 
 
 class VolleyballStrategy(PlayerStrategy):
     def __init__(self) -> None:
         super().__init__()
         self.strategies = {
-            SETTER: SetterStrategy(),
-            OUTSIDE_HITTER: OutsideHitterStrategy(),
-            OPPOSITE_HITTER: OppositeStrategy(),
-            MIDDLE_BLOCKER: MiddleBlockerStrategy(),
-            LIBERO: LiberoStrategy()
+            PlayerRole.SETTER: SetterStrategy(),
+            PlayerRole.OUTSIDE_HITTER: OutsideHitterStrategy(),
+            PlayerRole.OPPOSITE_HITTER: OppositeStrategy(),
+            PlayerRole.MIDDLE_BLOCKER: MiddleBlockerStrategy(),
+            PlayerRole.LIBERO: LiberoStrategy(),
         }
 
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         game = simulator.game
         player = actions[0].player
         team = actions[0].team
 
         # Obtener el rol del jugador
-        if team == HOME:
-            player_role = game.home.get_player_role(player)
+        if team == T1:
+            player_role = game.t1.get_player_role(player)
         else:
-            player_role = game.away.get_player_role(player)
+            player_role = game.t2.get_player_role(player)
 
         # Obtener la estrategia correspondiente al rol
         strategy = self.strategies.get(player_role, None)
@@ -50,7 +68,11 @@ class VolleyballStrategy(PlayerStrategy):
 
 
 class OppositeStrategy(PlayerStrategy):
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         game = simulator.game
         player = actions[0].player
@@ -62,20 +84,42 @@ class OppositeStrategy(PlayerStrategy):
 
         # Si está en la fila delantera, priorizar ataques
         if is_front_row:
-            attack_actions = [action for action in actions if isinstance(action, Attack)]
-            defensive_actions = [action for action in actions if isinstance(action, Block)]
+            attack_actions = [
+                action for action in actions if isinstance(action, Attack)
+            ]
+            defensive_actions = [
+                action for action in actions if isinstance(action, Block)
+            ]
             if attack_actions:
-                return max(attack_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    attack_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
             elif defensive_actions:
-                return max(defensive_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    defensive_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
         else:
             # Si está en la fila trasera, priorizar acciones defensivas
-            attack_actions = [action for action in actions if isinstance(action, Attack)]
-            defensive_actions = [action for action in actions if isinstance(action, Receive) or isinstance(action, Dig)]
+            attack_actions = [
+                action for action in actions if isinstance(action, Attack)
+            ]
+            defensive_actions = [
+                action
+                for action in actions
+                if isinstance(action, Receive) or isinstance(action, Dig)
+            ]
             if defensive_actions:
-                return max(defensive_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    defensive_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
             elif attack_actions:
-                return max(attack_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    attack_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
 
         return self.choose_best_action(actions, game)
 
@@ -91,19 +135,30 @@ class OppositeStrategy(PlayerStrategy):
     def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
         # Determina si el jugador está en la fila delantera
         net_row = game.field.net_row
-        if team == HOME:
+        if team == T1:
             return net_row - 3 <= position[0] < net_row
         else:
             return net_row < position[0] <= net_row + 3
 
 
 class LiberoStrategy(PlayerStrategy):
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         # Priorizar acciones defensivas
-        defensive_actions = [action for action in actions if isinstance(action, Receive) or isinstance(action, Dig)]
+        defensive_actions = [
+            action
+            for action in actions
+            if isinstance(action, Receive) or isinstance(action, Dig)
+        ]
         if defensive_actions:
-            return max(defensive_actions, key=lambda action: self.evaluate_action(action, simulator.game))
+            return max(
+                defensive_actions,
+                key=lambda action: self.evaluate_action(action, simulator.game),
+            )
         # Si no hay acciones defensivas disponibles, elegir la mejor acción disponible
         return self.choose_best_action(actions, simulator.game)
 
@@ -115,12 +170,19 @@ class LiberoStrategy(PlayerStrategy):
 
 
 class SetterStrategy(PlayerStrategy):
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         # Priorizar acciones de colocación
         set_actions = [action for action in actions if isinstance(action, Set)]
         if set_actions:
-            return max(set_actions, key=lambda action: self.evaluate_action(action, simulator.game))
+            return max(
+                set_actions,
+                key=lambda action: self.evaluate_action(action, simulator.game),
+            )
         # Si no hay acciones de colocación, elegir la mejor acción disponible
         return self.choose_best_action(actions, simulator.game)
 
@@ -135,7 +197,11 @@ class SetterStrategy(PlayerStrategy):
 
 
 class OutsideHitterStrategy(PlayerStrategy):
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         game = simulator.game
         player = actions[0].player
@@ -146,21 +212,46 @@ class OutsideHitterStrategy(PlayerStrategy):
 
         # Si está en la fila delantera, priorizar ataques
         if is_front_row:
-            attack_actions = [action for action in actions if isinstance(action, Attack)]
-            defensive_actions = [action for action in actions if isinstance(action, Block)
-                                 or isinstance(action, Dig) or isinstance(action, Receive)]
+            attack_actions = [
+                action for action in actions if isinstance(action, Attack)
+            ]
+            defensive_actions = [
+                action
+                for action in actions
+                if isinstance(action, Block)
+                or isinstance(action, Dig)
+                or isinstance(action, Receive)
+            ]
             if attack_actions:
-                return max(attack_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    attack_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
             elif defensive_actions:
-                return max(defensive_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    defensive_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
         else:
             # Si está en la fila trasera, priorizar acciones defensivas
-            attack_actions = [action for action in actions if isinstance(action, Attack)]
-            defensive_actions = [action for action in actions if isinstance(action, Receive) or isinstance(action, Dig)]
+            attack_actions = [
+                action for action in actions if isinstance(action, Attack)
+            ]
+            defensive_actions = [
+                action
+                for action in actions
+                if isinstance(action, Receive) or isinstance(action, Dig)
+            ]
             if defensive_actions:
-                return max(defensive_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    defensive_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
             elif attack_actions:
-                return max(attack_actions, key=lambda action: self.evaluate_action(action, game))
+                return max(
+                    attack_actions,
+                    key=lambda action: self.evaluate_action(action, game),
+                )
 
         return self.choose_best_action(actions, game)
 
@@ -176,22 +267,36 @@ class OutsideHitterStrategy(PlayerStrategy):
     def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
         # Determina si el jugador está en la fila delantera
         net_row = game.field.net_row
-        if team == HOME:
+        if team == T1:
             return net_row - 3 <= position[0] < net_row
         else:
             return net_row < position[0] <= net_row + 3
 
 
 class MiddleBlockerStrategy(PlayerStrategy):
-    def select_action(self, possible_actions: Callable[[Game], List[Action]], simulator: SimulatorAgent) -> Action:
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
         actions = possible_actions(simulator.game)
         # Priorizar acciones de bloqueo y ataque rápido
         block_actions = [action for action in actions if isinstance(action, Block)]
-        quick_attack_actions = [action for action in actions if isinstance(action, Attack) and action.is_quick_attack]
+        quick_attack_actions = [
+            action
+            for action in actions
+            if isinstance(action, Attack) and action.is_quick_attack
+        ]
         if block_actions:
-            return max(block_actions, key=lambda action: self.evaluate_action(action, simulator.game))
+            return max(
+                block_actions,
+                key=lambda action: self.evaluate_action(action, simulator.game),
+            )
         elif quick_attack_actions:
-            return max(quick_attack_actions, key=lambda action: self.evaluate_action(action, simulator.game))
+            return max(
+                quick_attack_actions,
+                key=lambda action: self.evaluate_action(action, simulator.game),
+            )
         # Si no hay acciones de bloqueo o ataque rápido, elegir la mejor acción disponible
         return self.choose_best_action(actions, simulator.game)
 
@@ -201,3 +306,131 @@ class MiddleBlockerStrategy(PlayerStrategy):
     def choose_best_action(self, actions: List[Action], game: Game) -> Action:
         return actions[0]
 
+
+class RandomStrategy(BehaviorStrategy, PlayerStrategy):
+    def __init__(self):
+        super().__init__()
+        self.behaviors: List[Behavior] = [RandomBehavior()]
+
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
+        return self.select_action_behavior(possible_actions(simulator.game), simulator)
+
+
+MIN = -10000000000
+CANT_SIMULATIONS = 1
+
+
+class PlayerStrategy(ABC):
+    @abstractmethod
+    def play(self, simulator: SimulatorAgent) -> Action:
+        pass
+
+
+class MinimaxStrategy(PlayerStrategy):
+    def __init__(self):
+        super().__init__()
+        self.evaluator = GameEvaluator()
+
+    def select_action(
+        self,
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+    ) -> Action:
+        actions = possible_actions(simulator.game)
+
+        team = actions[0].team
+        player = actions[0].player
+        print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
+
+        depth = 2
+
+        action = self.best_function(actions, possible_actions, simulator, depth, True)[
+            1
+        ]
+
+        return action
+
+    def best_function(
+        self,
+        actions: List[Action],
+        possible_actions: Callable[[Game], List[Action]],
+        simulator: SimulatorAgent,
+        depth: int,
+        first: bool = False,
+    ) -> Tuple[int, Action | None]:
+        if depth == 0 or simulator.game.is_finish():
+            return self.evaluation(simulator.game, simulator.team)
+
+        best, best_action = MIN, None
+
+        for action in actions:
+            len_stack = len(simulator.dispatch().stack)
+
+            str(simulator.game.field)
+
+            simulator.dispatch().dispatch(action)
+
+            for _ in range(CANT_SIMULATIONS):
+                if first:
+                    simulator.simulate_current()
+                else:
+                    simulator.simulate()
+
+                r, _ = self.best_function(
+                    possible_actions(simulator.game),
+                    possible_actions,
+                    simulator,
+                    depth - 1,
+                )
+
+                if r > best:
+                    best = r
+                    best_action = action
+
+                if first:
+                    simulator.reset_current()
+                    simulator.dispatch().dispatch(action)
+                else:
+                    simulator.reset()
+
+            while len(simulator.dispatch().stack) != len_stack:
+                simulator.dispatch().reset()
+
+        return best, best_action
+
+    def evaluation(self, game: Game, team: str) -> Tuple[float, Action | None]:
+        return self.evaluator.eval(game, team), None
+
+
+class GameEvaluator:
+    def eval(self, game: Game, team: str) -> float:
+        """
+        Evalúa el estado actual del juego desde la perspectiva del equipo especificado.
+        """
+        opponent_team = T1 if team == T2 else T2
+
+        # Diferencia de puntos
+        score_diff = game.get_team_score(team) - game.get_team_score(opponent_team)
+
+        # Posesión de la pelota
+        ball_possession = 1 if game.ball_possession_team == team else -1
+
+        # Toques restantes
+        touches_left = 3 - game.touches[team]
+
+        # Ubicación de la pelota
+        ball_on_our_side = 1 if game.is_ball_on_our_side(team) else -1
+
+        # Valor total
+        value = (
+            score_diff * 100
+            + ball_possession * 50
+            + touches_left * 20
+            + ball_on_our_side * 30
+        )
+
+        return value

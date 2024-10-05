@@ -1,13 +1,18 @@
-﻿from ..Tools.line_up import LineUp
-from .manager_line_up_strategy import ManagerLineUpStrategy
-from .manager_action_strategy import ManagerActionStrategy, ActionRandomStrategy
-from ..Tools.line_up import *
-from .simulator_agent import SimulatorAgent
+﻿from Tools.line_up import LineUp
+
 from .actions import Action
+from .manager_action_strategy import ActionRandomStrategy, ManagerActionStrategy
+from .manager_line_up_strategy import ManagerLineUpStrategy
+from .simulator_agent import SimulatorAgent
 
 
 class Manager:
-    def __init__(self, line_up_strategy: ManagerLineUpStrategy, action_strategy: ManagerActionStrategy, team: str) -> None:
+    def __init__(
+        self,
+        line_up_strategy: ManagerLineUpStrategy,
+        action_strategy: ManagerActionStrategy,
+        team: str,
+    ) -> None:
         self.line_up_strategy: ManagerLineUpStrategy = line_up_strategy
         self.action_strategy: ManagerActionStrategy = action_strategy
         self.team: str = team

@@ -1,55 +1,63 @@
-﻿from pandas import DataFrame
-from typing import List
+﻿from typing import List
 
-class PlayerData():
+from pandas import DataFrame
+
+
+class PlayerData:
     def __init__(self, df: DataFrame):
-        self.short_name: str = df['short_name']
-        self.club_name: str = df['club_name']
-        self.club_position: str = df['club_position']
-        self.player_positions: List[str] = df['player_positions'].split(', ')
-        self.overall: int = self._set_int_value(df['overall'])
-        self.pace: int = self._set_int_value(df['pace'])
-        self.shooting: int = self._set_int_value(df['shooting'])
-        self.passing: int = self._set_int_value(df['passing'])
-        self.dribbling: int = self._set_int_value(df['dribbling'])
-        self.defending: int = self._set_int_value(df['defending'])
-        self.physic: int = self._set_int_value(df['physic'])
-        self.attacking_finishing: int = self._set_int_value(df['attacking_finishing'])
-        self.mentality_vision: int = self._set_int_value(df['mentality_vision'])
-        self.power_stamina: int = self._set_int_value(df['power_stamina']) * 2
-        self.mentality_aggression: int = self._set_int_value(df['mentality_aggression'])
-        self.mentality_interceptions: int = self._set_int_value(df['mentality_interceptions'])
-        self.movement_reactions: int = self._set_int_value(df['movement_reactions'])
-        self.dorsal: int = self._set_int_value(df['club_jersey_number'])
-        self.goal_keep_diving: int = self._set_int_value(df['goalkeeping_diving'])
-        self.goal_keep_reflexes: int = self._set_int_value(df['goalkeeping_reflexes'])
-        self.skill_ball_control: int = self._set_int_value(df['skill_ball_control'])
+        # Atributos principales
+        self.name: str = df["Name"]
+        self.position: str = df["Position"]
+        self.p_attack: int = self._set_int_value(df["p_Attack"])
+        self.p_block: int = self._set_int_value(df["p_Block"])
+        self.p_dig: int = self._set_int_value(df["p_Dig"])
+        self.p_set: int = self._set_int_value(df["p_Set"])
+        self.p_serve: int = self._set_int_value(df["p_Serve"])
+        self.p_receive: int = self._set_int_value(df["p_Receive"])
+        self.country: str = df["Team"]
+        self.dorsal: int = df["Name"]
 
-        # Original values
-        self.o_short_name: str = df['short_name']
-        self.o_club_name: str = df['club_name']
-        self.o_club_position: str = df['club_position']
-        self.o_player_positions: List[str] = df['player_positions'].split(', ')
-        self.o_overall: int = self._set_int_value(df['overall'])
-        self.o_pace: int = self._set_int_value(df['pace'])
-        self.o_shooting: int = self._set_int_value(df['shooting'])
-        self.o_passing: int = self._set_int_value(df['passing'])
-        self.o_dribbling: int = self._set_int_value(df['dribbling'])
-        self.o_defending: int = self._set_int_value(df['defending'])
-        self.o_physic: int = self._set_int_value(df['physic'])
-        self.o_attacking_finishing: int = self._set_int_value(df['attacking_finishing'])
-        self.o_mentality_vision: int = self._set_int_value(df['mentality_vision'])
-        self.o_power_stamina: int = self._set_int_value(df['power_stamina']) * 2
-        self.o_mentality_aggression: int = self._set_int_value(df['mentality_aggression'])
-        self.o_mentality_interceptions: int = self._set_int_value(df['mentality_interceptions'])
-        self.o_movement_reactions: int = self._set_int_value(df['movement_reactions'])
-        self.o_dorsal: int = self._set_int_value(df['club_jersey_number'])
-        self.o_goal_keep_diving: int = self._set_int_value(df['goalkeeping_diving'])
-        self.o_goal_keep_reflexes: int = self._set_int_value(df['goalkeeping_reflexes'])
-        self.o_skill_ball_control: int = self._set_int_value(df['skill_ball_control'])
+        # Roles que puede desempeñar el jugador (si aplica)
+        self.roles: List[str] = (
+            df["Roles"].split(", ") if "Roles" in df else [self.position]
+        )
+
+        # Calificación general del jugador
+        self.overall: int = self.calculate_overall()
+
+        # Valores originales (opcional)
+        self.o_name: str = df["Name"]
+        self.o_position: str = df["Position"]
+        self.o_height: int = self._set_int_value(df["Height"])
+        self.o_p_attack: int = self._set_int_value(df["p_Attack"])
+        self.o_p_block: int = self._set_int_value(df["p_Block"])
+        self.o_p_dig: int = self._set_int_value(df["p_Dig"])
+        self.o_p_set: int = self._set_int_value(df["p_Set"])
+        self.o_p_serve: int = self._set_int_value(df["p_Serve"])
+        self.o_p_receive: int = self._set_int_value(df["p_Receive"])
+        self.o_country: str = df["Team"]
+        self.o_dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else -1
 
     def _set_int_value(self, value):
-        if value != value:
-            return 10
+        if value != value:  # Verifica si el valor es NaN
+            return 10  # Valor por defecto si es NaN
         else:
-            return value
+            return int(value)
+
+    def calculate_overall(self) -> int:
+        """
+        Calcula una calificación general (overall) del jugador
+        basado en sus habilidades principales.
+        """
+        attributes = [
+            self.p_attack,
+            self.p_block,
+            self.p_dig,
+            self.p_set,
+            self.p_serve,
+            self.p_receive,
+        ]
+        return int(sum(attributes) / len(attributes))
+
+    def repr(self):
+        return f"PlayerData(name={self.name}, position={self.position}, overall={self.overall})"

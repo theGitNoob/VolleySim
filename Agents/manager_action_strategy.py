@@ -1,27 +1,17 @@
 ﻿# manager_action_strategy.py
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
 from random import choice
+from typing import List, Tuple
 
-from .actions import Action, Substitution, Timeout, ManagerNothing
-from .fuzzy_rules import fuzzy_defensive_position, fuzzy_offensive_position
+from Tools.enum import T1, T2, PlayerRole
+from Tools.game import Game
+
+from .actions import Action, ManagerNothing, Substitution, Timeout
 from .simulator_agent import SimulatorAgent
-from ..Tools.game import Game
-from ..Tools.field import GridField
-from .actions import *
-from .manager_line_up_strategy import possible_line_ups
-from ..Tools.enum import HOME, AWAY
 
-# Definición de roles específicos del voleibol
-SETTER = 'SETTER'
-HITTER = 'HITTER'
-MIDDLE_BLOCKER = 'MIDDLE_BLOCKER'
-LIBERO = 'LIBERO'
-OPPOSITE = 'OPPOSITE'
-
-MIN = float('-inf')
-MAX = float('inf')
+MIN = float("-inf")
+MAX = float("inf")
 
 CANT_SIMULATIONS = 1  # Número de simulaciones a realizar
 
@@ -29,7 +19,7 @@ CANT_SIMULATIONS = 1  # Número de simulaciones a realizar
 def possible_substitutions(game: Game, team: str) -> List[Action]:
     possibles = []
 
-    team_data = game.home if team == HOME else game.away
+    team_data = game.t1 if team == T1 else game.t2
 
     max_substitutions_per_set = 6  # Máximo de sustituciones por set en voleibol
     if len(team_data.substitution_history) >= max_substitutions_per_set:
@@ -40,16 +30,22 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
         player_on_court = player_info.player
 
         # Evitar sustituir al líbero
-        if player_info.player_role == LIBERO:
+        if player_info.player_role == PlayerRole.LIBERO:
             continue
 
         # Generar posibles sustituciones con jugadores en el banco
         for bench_player in team_data.on_bench:
             # Evitar sustituir a un jugador que ya entró por el mismo jugador en el set
-            if any(sub for sub in team_data.substitution_history if sub['in'] == bench_player and sub['out'] == player_on_court):
+            if any(
+                sub
+                for sub in team_data.substitution_history
+                if sub["in"] == bench_player and sub["out"] == player_on_court
+            ):
                 continue
 
-            substitution_action = Substitution(player_on_court, bench_player, team, game)
+            substitution_action = Substitution(
+                player_on_court, bench_player, team, game
+            )
             possibles.append(substitution_action)
 
     return possibles
@@ -81,7 +77,9 @@ class ActionRandomStrategy(ManagerActionStrategy):
 
 class ActionSimulateStrategy(ManagerActionStrategy):
     def action(self, team: str, simulator: SimulatorAgent) -> Action:
-        print(f'El entrenador del equipo {"local" if team == HOME else "visitante"} está pensando...')
+        print(
+            f'El entrenador del equipo {"local" if team == T1 else "visitante"} está pensando...'
+        )
 
         actions = possible_actions(simulator.game, team)
         if not actions:
@@ -114,12 +112,14 @@ class ActionSimulateStrategy(ManagerActionStrategy):
 
 class ActionMiniMaxStrategy(ManagerActionStrategy):
     def action(self, team: str, simulator: SimulatorAgent) -> Action:
-        print(f'El entrenador del equipo {"local" if team == HOME else "visitante"} está pensando...')
+        print(
+            f'El entrenador del equipo {"local" if team == T1 else "visitante"} está pensando...'
+        )
 
         depth = 2  # Profundidad del árbol de decisión
 
         simulator.simulate_current()
-        if team == HOME:
+        if team == T1:
             value, action = self.maximize(simulator, depth, MIN, MAX, team)
         else:
             value, action = self.minimize(simulator, depth, MIN, MAX, team)
@@ -127,7 +127,14 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
 
         return action if action else ManagerNothing(team, simulator.game)
 
-    def maximize(self, simulator: SimulatorAgent, depth: int, alpha: float, beta: float, team: str) -> Tuple[float, Action]:
+    def maximize(
+        self,
+        simulator: SimulatorAgent,
+        depth: int,
+        alpha: float,
+        beta: float,
+        team: str,
+    ) -> Tuple[float, Action]:
         if depth == 0 or simulator.game.is_finish():
             return ManagerGameEvaluator().eval(simulator.game, team), None
 
@@ -158,14 +165,21 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
 
         return max_eval, best_action
 
-    def minimize(self, simulator: SimulatorAgent, depth: int, alpha: float, beta: float, team: str) -> Tuple[float, Action]:
+    def minimize(
+        self,
+        simulator: SimulatorAgent,
+        depth: int,
+        alpha: float,
+        beta: float,
+        team: str,
+    ) -> Tuple[float, Action]:
         if depth == 0 or simulator.game.is_finish():
             return ManagerGameEvaluator().eval(simulator.game, team), None
 
         min_eval = MAX
         best_action = None
 
-        opponent_team = HOME if team == AWAY else AWAY
+        opponent_team = T1 if team == T2 else T2
         actions = possible_actions(simulator.game, opponent_team)
         if not actions:
             return ManagerGameEvaluator().eval(simulator.game, team), None
@@ -197,7 +211,11 @@ class ManagerGameEvaluator:
         # Considerar la puntuación, niveles de fatiga y otros factores
 
         # Diferencia de puntuación
-        score_diff = (game.home_score - game.away_score) if team == HOME else (game.away_score - game.home_score)
+        score_diff = (
+            (game.t1_score - game.t2_score)
+            if team == T1
+            else (game.t2_score - game.t1_score)
+        )
 
         # Penalización por fatiga
         fatigue_penalty = self.calculate_fatigue_penalty(game, team)
@@ -206,7 +224,7 @@ class ManagerGameEvaluator:
         return score_diff - fatigue_penalty
 
     def calculate_fatigue_penalty(self, game: Game, team: str) -> float:
-        team_data = game.home if team == HOME else game.away
+        team_data = game.t1 if team == T1 else game.t2
         total_stamina = sum(player.stamina for player in team_data.data.values())
         average_stamina = total_stamina / len(team_data.data)
 

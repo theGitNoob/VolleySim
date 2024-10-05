@@ -1,14 +1,15 @@
 ﻿# simulator.py
+from typing import Generator, List, Set, Tuple
 
-from typing import Generator, Set, Tuple, List
-from ..Agents.actions import Dispatch
-from ..Agents.team import TeamAgent
-from ..Tools.game import Game
-from ..Tools.data import TeamData
-from ..Agents.simulator_agent import SimulatorAgent
-from ..Agents.manager_agent import Manager
-from ..Agents.manager_action_strategy import ActionSimulateStrategy, ActionMiniMaxStrategy
-from ..Tools.enum import HOME, AWAY
+from Agents.actions import Dispatch
+from Agents.manager_action_strategy import ActionMiniMaxStrategy, ActionSimulateStrategy
+from Agents.manager_agent import Manager
+from Agents.simulator_agent import SimulatorAgent
+from Agents.team import TeamAgent
+from Tools.data import TeamData
+from Tools.enum import T1, T2
+from Tools.game import Game
+from Tools.utils import coin_toss
 
 # Ajuste de constantes para el voleibol
 CANT_RALLIES = 180  # Número máximo de rallies a simular
@@ -16,27 +17,34 @@ INTERVAL_MANAGER = 20  # Intervalo para decisiones del entrenador (sustituciones
 
 
 class VolleyballSimulation:
-    def __init__(self, home: Tuple[TeamAgent, TeamData], away: Tuple[TeamAgent, TeamData]) -> None:
-        self.home: TeamAgent = home[0]
-        self.away: TeamAgent = away[0]
-        self.game: Game = Game(home[1], away[1], CANT_RALLIES)
+    def __init__(
+        self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
+    ) -> None:
+
+        self.t1: TeamAgent = team1[0]
+        self.t2: TeamAgent = team2[0]
+        self.game: Game = Game(team1[1], team2[1], CANT_RALLIES)
 
     def simulate(self) -> Generator[str, None, None]:
-        simulator = Simulator(self.home, self.away, self.game)
+        simulator = Simulator(self.t1, self.t2, self.game)
         simulator.start_match()
 
         field_str = str(self.game.field)
-        statistics = self.game_statistics(self.game.instance - 1, self.game.cant_instances)
-        yield field_str + '\n' + statistics
+        statistics = self.game_statistics(
+            self.game.instance - 1, self.game.cant_instances
+        )
+        yield field_str + "\n" + statistics
 
         while not self.game.is_finish():
             simulator.simulate_rally(set())
             field_str = str(self.game.field)
-            statistics = self.game_statistics(self.game.instance - 1, self.game.cant_instances)
-            yield field_str + '\n' + statistics
+            statistics = self.game_statistics(
+                self.game.instance - 1, self.game.cant_instances
+            )
+            yield field_str + "\n" + statistics
 
     def simulate_and_save(self):
-        simulator = Simulator(self.home, self.away, self.game)
+        simulator = Simulator(self.t1, self.t2, self.game)
         simulator.start_match()
 
         while not self.game.is_finish():
@@ -45,12 +53,12 @@ class VolleyballSimulation:
         return simulator.game.to_json()
 
     def game_statistics(self, instance: int, total_rallies: int) -> str:
-        nh = f'\033[34m{self.home.name}\033[0m'
-        na = f'\033[31m{self.away.name}\033[0m'
-        sh = self.game.home_sets
-        sa = self.game.away_sets
-        ph = self.game.home_score
-        pa = self.game.away_score
+        nh = f"\033[34m{self.t1.name}\033[0m"
+        na = f"\033[31m{self.t2.name}\033[0m"
+        sh = self.game.t1_sets
+        sa = self.game.t2_sets
+        ph = self.game.t1_score
+        pa = self.game.t2_score
         current_set = self.game.current_set
 
         len_s = len(nh) + len(na) - 18
@@ -63,25 +71,38 @@ Puntos en Set Actual: {ph}{' ' * 40}{pa}
 
 
 class Simulator:
-    def __init__(self, home: TeamAgent, away: TeamAgent, game: Game) -> None:
-        self.home: TeamAgent = home
-        self.away: TeamAgent = away
+    def __init__(self, team1: TeamAgent, team2: TeamAgent, game: Game) -> None:
+        self.team1: TeamAgent = team1
+        self.team2: TeamAgent = team2
         self.game: Game = game
         self.stack: List[int] = []
-        self.dispatch = Dispatch(self.game)  # Ahora Dispatch recibe la instancia de Game
+        self.dispatch = Dispatch(
+            self.game
+        )  # Ahora Dispatch recibe la instancia de Game
 
     def start_match(self):
         self.game.instance = 0
-        home_lineup = self.home.manager.get_line_up(SimulatorLineUpManager(self))
-        away_lineup = self.away.manager.get_line_up(SimulatorLineUpManager(self))
-        self.game.conf_line_ups(home_lineup, away_lineup)
+
+        t1_lineup = self.team1.manager.get_line_up(SimulatorLineUpManager(self))
+        t2_lineup = self.team2.manager.get_line_up(SimulatorLineUpManager(self))
+
+        self.game.conf_line_ups(t1_lineup, t2_lineup)
 
         # Determinar equipo que sirve primero
-        self.game.serving_team = HOME  # O puedes elegir aleatoriamente
+        if coin_toss():
+            self.game.serving_team = T1
+        else:
+            self.game.serving_team = T2
+
         self.game.start_rally()
         self.game.instance = 1
 
-    def simulate_rally(self, mask: Set[Tuple[int, str]]):
+    def simulate_rally(
+        self,
+        mask: Set[Tuple[int, str]],
+        heuristic_manager: bool = False,
+        heuristic_player: bool = False,
+    ):
         self.stack.append(len(self.dispatch.stack))
 
         # Iniciar el rally en el juego
@@ -114,30 +135,30 @@ class Simulator:
     def get_next_player(self, team: str) -> int:
         # Lógica para seleccionar el siguiente jugador que realizará una acción
         # Puede basarse en la posición, función, o estrategia del equipo
-        if team == HOME:
-            return self.home.select_next_player()
+        if team == T1:
+            return self.team1.select_next_player()
         else:
-            return self.away.select_next_player()
+            return self.team2.select_next_player()
 
     def get_player_action(self, team: str, player_number: int, sim: SimulatorAgent):
         # Obtener la acción que el jugador realizará
-        if team == HOME:
-            return self.home.players[player_number].play(sim)
+        if team == T1:
+            return self.team1.players[player_number].play(sim)
         else:
-            return self.away.players[player_number].play(sim)
+            return self.team2.players[player_number].play(sim)
 
     def simulate_managers(self, mask: Set[Tuple[int, str]]):
         if self.game.instance % INTERVAL_MANAGER == 0:
-            if not (HOME, 'manager') in mask:
-                mask.add((HOME, 'manager'))
-                sim = self.get_simulator(self.home.manager, HOME, mask)
-                action = self.home.manager.decide_action(sim)
+            if (T1, "manager") not in mask:
+                mask.add((T1, "manager"))
+                sim = self.get_simulator(self.team1.manager, T1, mask)
+                action = self.team1.manager.decide_action(sim)
                 self.dispatch.dispatch(action)
 
-            if not (AWAY, 'manager') in mask:
-                mask.add((AWAY, 'manager'))
-                sim = self.get_simulator(self.away.manager, AWAY, mask)
-                action = self.away.manager.decide_action(sim)
+            if (T2, "manager") not in mask:
+                mask.add((T2, "manager"))
+                sim = self.get_simulator(self.team2.manager, T2, mask)
+                action = self.team2.manager.decide_action(sim)
                 self.dispatch.dispatch(action)
 
     def get_simulator(self, manager: Manager, team: str, mask: Set[Tuple[int, str]]):
@@ -230,7 +251,9 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
 
 class SimulatorActionSimulatePlayer(SimulatorAgent):
-    def __init__(self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]):
+    def __init__(
+        self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
+    ):
         super().__init__(simulator.game)
         self.team: str = team
         self.player: int = player
@@ -259,7 +282,7 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
 class SimulatorActionMiniMaxManager(SimulatorActionSimulateManager):
     def simulate(self):
         for _ in range(INTERVAL_MANAGER):
-            self.simulator.simulate_rally({(HOME, 'manager'), (AWAY, 'manager')})
+            self.simulator.simulate_rally({(T1, "manager"), (T2, "manager")})
 
     def reset(self):
         for _ in range(INTERVAL_MANAGER):
@@ -267,8 +290,8 @@ class SimulatorActionMiniMaxManager(SimulatorActionSimulateManager):
 
     def simulate_current(self):
         mask = self.mask.copy()
-        if self.team == HOME:
-            mask.add((AWAY, 'manager'))
+        if self.team == T1:
+            mask.add((T2, "manager"))
         else:
-            mask.add((HOME, 'manager'))
+            mask.add((T1, "manager"))
         self.simulator.simulate_rally(mask)

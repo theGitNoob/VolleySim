@@ -1,13 +1,12 @@
 ﻿# actions.py
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Dict
-from random import random, randint
+from random import random
+from typing import List, Tuple
 
-from ..Tools.game import Game
-from ..Tools.data import StatisticsTeam, StatisticsPlayer, PlayerData
-from ..Tools.line_up import LineUp
-from ..Tools.enum import HOME, AWAY
+from Tools.data import PlayerData, StatisticsPlayer, StatisticsTeam
+from Tools.enum import T1, T2
+from Tools.game import Game
 
 
 class Action(ABC):
@@ -18,22 +17,22 @@ class Action(ABC):
         self.game: Game = game
 
     def get_player_data(self) -> PlayerData:
-        if self.team == HOME:
-            return self.game.home.data[self.player]
+        if self.team == T1:
+            return self.game.t1.data[self.player]
         else:
-            return self.game.away.data[self.player]
+            return self.game.t2.data[self.player]
 
     def get_statistics(self) -> StatisticsTeam:
-        if self.team == HOME:
-            return self.game.home.statistics
+        if self.team == T1:
+            return self.game.t1.statistics
         else:
-            return self.game.away.statistics
+            return self.game.t2.statistics
 
     def get_player_statistics(self) -> StatisticsPlayer:
-        if self.team == HOME:
-            return self.game.home.players_statistics[self.player]
+        if self.team == T1:
+            return self.game.t1.players_statistics[self.player]
         else:
-            return self.game.away.players_statistics[self.player]
+            return self.game.t2.players_statistics[self.player]
 
     @abstractmethod
     def execute(self):
@@ -66,7 +65,7 @@ class Receive(Action):
 
         if not self.success:
             # Error en la recepción, punto para el oponente
-            opponent_team = HOME if self.team == AWAY else HOME
+            opponent_team = T1 if self.team == T2 else T1
             self.game.score_point(opponent_team)
 
     def reset(self):
@@ -82,7 +81,7 @@ class Receive(Action):
 
         if not self.success:
             # Revertir punto otorgado
-            opponent_team = HOME if self.team == AWAY else HOME
+            opponent_team = T1 if self.team == T2 else T1
             self.game.revert_point(opponent_team)
 
 
@@ -108,7 +107,7 @@ class Serve(Action):
 
         if not self.success:
             # Error en el saque, punto para el oponente
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
 
     def reset(self):
@@ -124,7 +123,7 @@ class Serve(Action):
 
         if not self.success:
             # Revertir el punto otorgado
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.revert_point(opponent_team)
 
 
@@ -147,7 +146,7 @@ class Dig(Action):
 
         if not self.success:
             # Error en el dig, punto para el oponente
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
 
     def reset(self):
@@ -161,7 +160,7 @@ class Dig(Action):
 
         if not self.success:
             # Revertir punto del oponente
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.revert_point(opponent_team)
 
 
@@ -213,7 +212,7 @@ class Attack(Action):
 
         if self.success:
             # Intentar bloqueo del oponente
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             blocker_player = self.select_blocker(opponent_team)
             self.block_action = Block(blocker_player, opponent_team, self.game)
             self.block_action.execute()
@@ -227,7 +226,7 @@ class Attack(Action):
                 self.game.score_point(self.team)
         else:
             # Error en el ataque, punto para el oponente
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
 
     def reset(self):
@@ -246,12 +245,12 @@ class Attack(Action):
         if self.success and not self.blocked:
             self.game.revert_point(self.team)
         else:
-            opponent_team = HOME if self.team == AWAY else AWAY
+            opponent_team = T1 if self.team == T2 else T2
             self.game.revert_point(opponent_team)
 
     def select_blocker(self, team: str) -> int:
         # Lógica para seleccionar al jugador bloqueador
-        team_data = self.game.home if team == HOME else self.game.away
+        team_data = self.game.t1 if team == T1 else self.game.t2
         # Seleccionar un bloqueador disponible
         return team_data.select_blocker()
 
@@ -284,7 +283,14 @@ class Block(Action):
 
 
 class Move(Action):
-    def __init__(self, src: Tuple[int, int], dest: Tuple[int, int], player: int, team: str, game: Game) -> None:
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
         super().__init__(player, team, game)
         self.src = src
         self.dest = dest
@@ -317,14 +323,12 @@ class Substitution(Action):
         self.player_out = player_out
 
     def execute(self):
-        team_data = self.game.home if self.team == HOME else self.game.away
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
 
         # Registrar la sustitución en el historial
-        team_data.substitution_history.append({
-            'out': self.player_out,
-            'in': self.player_in,
-            'set': self.game.current_set
-        })
+        team_data.substitution_history.append(
+            {"out": self.player_out, "in": self.player_in, "set": self.game.current_set}
+        )
 
         # Actualizar el line-up
         team_data.line_up.substitute_player(self.player_out, self.player_in)
@@ -336,10 +340,12 @@ class Substitution(Action):
         team_data.on_bench.add(self.player_out)
 
         # Actualizar el campo de juego
-        self.game.field.update_player_on_field(self.player_out, self.player_in, self.team)
+        self.game.field.update_player_on_field(
+            self.player_out, self.player_in, self.team
+        )
 
     def reset(self):
-        team_data = self.game.home if self.team == HOME else self.game.away
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
 
         # Revertir la sustitución
         team_data.substitution_history.pop()
@@ -354,7 +360,9 @@ class Substitution(Action):
         team_data.on_bench.add(self.player_in)
 
         # Actualizar el campo de juego
-        self.game.field.update_player_on_field(self.player_in, self.player_out, self.team)
+        self.game.field.update_player_on_field(
+            self.player_in, self.player_out, self.team
+        )
 
 
 # Definición de la acción Timeout
@@ -416,12 +424,12 @@ class Dispatch:
     def serve_trigger(self, action: Serve):
         if not action.success:
             # Error en el saque, punto para el oponente
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
         else:
             # Saque exitoso, el oponente intenta recibir
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             receiver_player = self.game.select_receiver(opponent_team)
             receive_action = Receive(receiver_player, opponent_team, self.game)
             self.dispatch(receive_action)
@@ -429,7 +437,7 @@ class Dispatch:
     def receive_trigger(self, action: Receive):
         if not action.success:
             # Error en la recepción, punto para el oponente
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
         else:
@@ -441,7 +449,7 @@ class Dispatch:
     def set_trigger(self, action: Set):
         if not action.success:
             # Error en la colocación, punto para el oponente
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
         else:
@@ -453,12 +461,12 @@ class Dispatch:
     def attack_trigger(self, action: Attack):
         if not action.success:
             # Error en el ataque, punto para el oponente
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
         else:
             # Ataque exitoso, el oponente intenta bloquear
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             blocker_player = self.game.select_blocker(opponent_team)
             block_action = Block(blocker_player, opponent_team, self.game)
             self.dispatch(block_action)
@@ -470,14 +478,14 @@ class Dispatch:
             self.game.change_serving_team(action.team)
         else:
             # Bloqueo fallido, el equipo atacante gana el punto
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
 
     def dig_trigger(self, action: Dig):
         if not action.success:
             # Error en la defensa, punto para el oponente
-            opponent_team = HOME if action.team == AWAY else AWAY
+            opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
             self.game.change_serving_team(opponent_team)
         else:

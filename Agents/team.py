@@ -1,6 +1,7 @@
 ﻿from typing import Dict
-from .player_agent import Player
+
 from .manager_agent import Manager
+from .player_agent import Player
 
 
 class TeamAgent:

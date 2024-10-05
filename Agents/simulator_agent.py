@@ -1,6 +1,8 @@
-﻿from ..Tools.game import Game
+﻿from abc import ABC, abstractmethod
+
+from Tools.game import Game
+
 from .actions import Dispatch
-from abc import ABC, abstractmethod
 
 
 class SimulatorAgent(ABC):

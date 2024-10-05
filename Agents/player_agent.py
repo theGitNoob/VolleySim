@@ -1,17 +1,16 @@
-﻿from ..Agents.simulator_agent import SimulatorAgent
+﻿from typing import Generator
+
+from Agents.simulator_agent import SimulatorAgent
+from Tools.field import *
+
 from .actions import *
-from ..Tools.game import *
-from ..Tools.data import PlayerData
-from ..Tools.field import *
-from typing import List, Tuple, Generator
-from .player_strategy import VolleyballStrategy, PlayerStrategy
+from .player_strategy import PlayerStrategy, VolleyballStrategy
 
 
 class Player:
-    def __init__(self, vision: int, dorsal: int, team: str, strategy: PlayerStrategy) -> None:
+    def __init__(self, dorsal: int, team: str, strategy: PlayerStrategy) -> None:
         self.strategy = strategy
         self.heuristic_strategy = VolleyballStrategy()
-        self.vision: float = vision / 10
         self.dorsal = dorsal
         self.team = team
 
@@ -25,36 +24,41 @@ class Player:
         return action
 
     def play_heuristic(self, simulator: SimulatorAgent):
-        action = self.heuristic_strategy.select_action(
-            self.possible_actions, simulator)
+        action = self.heuristic_strategy.select_action(self.possible_actions, simulator)
         return action
 
     def get_data(self, game: Game) -> PlayerData:
-        if self.team == HOME:
-            return game.home.data[self.dorsal]
+        if self.team == T1:
+            return game.t1.data[self.dorsal]
         else:
-            return game.away.data[self.dorsal]
+            return game.t2.data[self.dorsal]
 
     def get_perceptions(self, game: Game) -> Tuple[List[GridField], GridField]:
         p_grid: GridField = game.field.find_player(self.dorsal, self.team)
-        visible_grids: List[GridField] = game.field.neighbor_grids(
-            p_grid, self.vision)
+        visible_grids: List[GridField] = game.field.neighbor_grids(p_grid, 100)
         return visible_grids, p_grid
 
     @staticmethod
-    def empty_adjacent_grids(visible_grids: List[GridField], p_grid: GridField) -> Generator[GridField, None, None]:
+    def empty_adjacent_grids(
+        visible_grids: List[GridField], p_grid: GridField
+    ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if p_grid.is_contiguous(g) and g.is_empty():
                 yield g
 
-    def friendly_grids(self, visible_grids: List[GridField]) -> Generator[GridField, None, None]:
+    def friendly_grids(
+        self, visible_grids: List[GridField]
+    ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if g.team == self.team:
                 yield g
 
-    def construct_actions(self, game: Game, visible_grids: List[GridField], p_grid: GridField) -> List[Action]:
+    def construct_actions(
+        self, game: Game, visible_grids: List[GridField], p_grid: GridField
+    ) -> List[Action]:
         actions: List[Action] = [Nothing(self.dorsal, self.team, game)]
 
+        # TODO: Remove
         if self.get_data(game).stamina <= 0:
             return actions
 
@@ -74,7 +78,11 @@ class Player:
                 # El jugador puede moverse dentro de la cancha
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
                     dest = (grid.row, grid.col)
-                    actions.append(Move((p_grid.row, p_grid.col), dest, self.dorsal, self.team, game))
+                    actions.append(
+                        Move(
+                            (p_grid.row, p_grid.col), dest, self.dorsal, self.team, game
+                        )
+                    )
         else:
             # La pelota está en el lado del oponente o viene un ataque
             if game.is_opponent_attacking():
@@ -85,6 +93,10 @@ class Player:
                 # El jugador puede reposicionarse
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
                     dest = (grid.row, grid.col)
-                    actions.append(Move((p_grid.row, p_grid.col), dest, self.dorsal, self.team, game))
+                    actions.append(
+                        Move(
+                            (p_grid.row, p_grid.col), dest, self.dorsal, self.team, game
+                        )
+                    )
 
         return actions
