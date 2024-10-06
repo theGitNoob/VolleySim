@@ -10,3 +10,4 @@ class PlayerRole(Enum):
     OUTSIDE_HITTER = "OH"  # Punta o Atacante Exterior
     OPPOSITE_HITTER = "O"  # Opuesto
     LIBERO = "L"  # Líbero
+    SUBSTITUTE = "SUB"  # Suplente

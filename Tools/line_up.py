@@ -1,8 +1,8 @@
 ﻿from abc import ABC
-from typing import Dict
+from typing import Dict, Optional
 
-from .enum import PlayerRole
-from .player_data import PlayerData
+from Tools.enum import PlayerRole
+from Tools.player_data import PlayerData
 
 # Estrategias
 OFFENSIVE = "OFFENSIVE"
@@ -10,39 +10,34 @@ DEFENSIVE = "DEFENSIVE"
 NORMAL = "NORMAL"
 
 
-# Roles de jugador en voleibol
-
-
 class LineUpGrid:
-    def __init__(
-        self, row: int, col: int, position_number: int, player_role: str
-    ) -> None:
+    def __init__(self, row: int, col: int, position_number: int, player_role: str) -> None:
         self.row: int = row  # Posición en la cancha (fila)
         self.col: int = col  # Posición en la cancha (columna)
-        self.player: int = -1  # Número de camiseta del jugador
+        self.player: Optional[int] = None  # Dorsal del jugador (None si no hay jugador asignado)
         self.position_number: int = position_number  # Posición de rotación (1-6)
         self.conf: str = NORMAL  # Estrategia actual
         self.player_role: str = player_role  # Rol del jugador
 
     def conf_player(self, player: PlayerData):
-        self._set_statistics(player, player.preferred_role == self.player_role)
-        self.player: int = player.number  # Asignar número de jugador
+        in_role = player.position == self.player_role or self.player_role in player.roles
+        self._set_statistics(player, in_role)
+        self.player = player.dorsal  # Asignar dorsal del jugador
 
     def set_statistics(self, player_data: PlayerData) -> None:
-        self._set_statistics(
-            player_data, player_data.preferred_role == self.player_role
-        )
+        in_role = player_data.position == self.player_role or self.player_role in player_data.roles
+        self._set_statistics(player_data, in_role)
 
     def _set_statistics(self, player_data: PlayerData, in_role: bool) -> None:
         if not in_role:
             # Penalizar estadísticas si el jugador no está en su rol preferido
-            player_data.spike -= 5
-            player_data.block -= 5
-            player_data.serve -= 5
-            player_data.receive -= 5
-            player_data.set -= 5
-            player_data.dig -= 5
-            player_data.overall -= 5
+            player_data.p_attack = max(0, player_data.p_attack - 5)
+            player_data.p_block = max(0, player_data.p_block - 5)
+            player_data.p_serve = max(0, player_data.p_serve - 5)
+            player_data.p_receive = max(0, player_data.p_receive - 5)
+            player_data.p_set = max(0, player_data.p_set - 5)
+            player_data.p_dig = max(0, player_data.p_dig - 5)
+            player_data.overall = player_data.calculate_overall()
 
 
 class LineUp(ABC):
@@ -51,16 +46,19 @@ class LineUp(ABC):
 
     def conf_players(self, players: Dict[int, PlayerData]) -> None:
         for position_number, player in players.items():
-            self.line_up[position_number].conf_player(player)
+            if position_number in self.line_up:
+                self.line_up[position_number].conf_player(player)
+            else:
+                raise ValueError(f"Número de posición {position_number} no está en la alineación.")
 
-    def get_player_position(self, player_name: str) -> LineUpGrid | None:
+    def get_player_position(self, player_dorsal: int) -> Optional[LineUpGrid]:
         for grid in self.line_up.values():
-            if grid.player == player_name:
+            if grid.player == player_dorsal:
                 return grid
         return None
 
-    def get_player_role(self, player_name: str) -> str:
-        line_up_position = self.get_player_position(player_name)
+    def get_player_role(self, player_dorsal: int) -> Optional[str]:
+        line_up_position = self.get_player_position(player_dorsal)
         return line_up_position.player_role if line_up_position else None
 
     def rotate(self):
@@ -73,112 +71,42 @@ class LineUp(ABC):
             temp_line_up[new_pos_num].position_number = new_pos_num
         self.line_up = temp_line_up
 
+    def reset_positions(self, team_side: str) -> None:
+        return
+
+    def add_player(self, player: PlayerData, role: str) -> None:
+        for grid in self.line_up.values():
+            if grid.player is None and grid.player_role.value == role:
+                grid.conf_player(player)
+                return
+        raise ValueError(f"No hay posición disponible para el rol {role}.")
+
+    def select_next_player(self) -> int:
+        for grid in self.line_up.values():
+            if grid.player is not None:
+                return grid.player
+        raise ValueError("No hay jugadores en la alineación.")
+
 
 class StandardVolleyballLineUp(LineUp):
-    def __init__(self) -> None:
+    def __init__(self, team_side: str) -> None:
         super().__init__()
-        # Definir las posiciones iniciales en la cancha
-        self.line_up = {
-            1: LineUpGrid(
-                16, 4, 1, PlayerRole.OPPOSITE_HITTER
-            ),  # Posición 1 (Zaguero Derecho)
-            2: LineUpGrid(
-                12, 6, 2, PlayerRole.OUTSIDE_HITTER
-            ),  # Posición 2 (Delantero Derecho)
-            3: LineUpGrid(
-                12, 4, 3, PlayerRole.MIDDLE_BLOCKER
-            ),  # Posición 3 (Delantero Central)
-            4: LineUpGrid(
-                12, 2, 4, PlayerRole.OUTSIDE_HITTER
-            ),  # Posición 4 (Delantero Izquierdo)
-            5: LineUpGrid(
-                16, 2, 5, PlayerRole.LIBERO
-            ),  # Posición 5 (Zaguero Izquierdo)
-            6: LineUpGrid(16, 6, 6, PlayerRole.SETTER),  # Posición 6 (Zaguero Central)
+        self.court_length = 18
+        self.line_up = self._create_positions(team_side)
+
+    def _create_positions(self, team_side: str) -> Dict[int, LineUpGrid]:
+        # Posiciones base (Equipo 1)
+        positions = {
+            1: LineUpGrid(8, 4, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
+            2: LineUpGrid(1, 7, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 2
+            3: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
+            4: LineUpGrid(1, 1, 1, PlayerRole.SETTER),  # Posición 4
+            5: LineUpGrid(7, 1, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 5
+            6: LineUpGrid(7, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
         }
 
-
-# Ejemplo de uso
-# Asumiendo que la clase PlayerData tiene los atributos necesarios
-# Crear instancias de PlayerData para cada jugador
-# player1 = PlayerData(
-#     number=1,
-#     preferred_role=OPPOSITE_HITTER,
-#     spike=80,
-#     block=70,
-#     serve=75,
-#     receive=65,
-#     set=60,
-#     dig=70,
-#     overall=75,
-# )
-# player2 = PlayerData(
-#     number=2,
-#     preferred_role=OUTSIDE_HITTER,
-#     spike=85,
-#     block=65,
-#     serve=70,
-#     receive=75,
-#     set=65,
-#     dig=80,
-#     overall=78,
-# )
-# player3 = PlayerData(
-#     number=3,
-#     preferred_role=MIDDLE_BLOCKER,
-#     spike=80,
-#     block=85,
-#     serve=65,
-#     receive=60,
-#     set=55,
-#     dig=65,
-#     overall=77,
-# )
-# player4 = PlayerData(
-#     number=4,
-#     preferred_role=OUTSIDE_HITTER,
-#     spike=83,
-#     block=68,
-#     serve=72,
-#     receive=78,
-#     set=67,
-#     dig=82,
-#     overall=79,
-# )
-# player5 = PlayerData(
-#     number=5,
-#     preferred_role=LIBERO,
-#     spike=50,
-#     block=50,
-#     serve=60,
-#     receive=90,
-#     set=70,
-#     dig=90,
-#     overall=80,
-# )
-# player6 = PlayerData(
-#     number=6,
-#     preferred_role=SETTER,
-#     spike=70,
-#     block=65,
-#     serve=75,
-#     receive=70,
-#     set=85,
-#     dig=75,
-#     overall=78,
-# )
-
-# Crear la alineación y configurar los jugadores
-# lineup = StandardVolleyballLineUp()
-# players = {1: player1, 2: player2, 3: player3, 4: player4, 5: player5, 6: player6}
-# lineup.conf_players(players)
-#
-# # Rotar las posiciones
-# lineup.rotate()
-#
-# # Obtener la posición y rol de un jugador
-# player_number = 1
-# grid = lineup.get_player_position(player_number)
-# print(
-#     f"El jugador {player_number} está en la posición {grid.position_number} como {grid.player_role}"
-# )
+        if team_side == "T2":
+            # Reflejar las posiciones en el eje vertical
+            for grid in positions.values():
+                grid.row = self.court_length - grid.row
+        return positions

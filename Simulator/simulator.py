@@ -110,7 +110,6 @@ class Simulator:
 
         while not self.game.is_rally_over():
             current_team = self.game.ball_possession_team
-
             # Obtener acción del jugador
             action = self.get_next_action(current_team)
             self.dispatch.dispatch(action)
@@ -126,15 +125,12 @@ class Simulator:
         self.simulate_managers(mask)
 
     def get_next_action(self, team: str):
-        # Determinar el siguiente jugador que actuará
-        player_number = self.get_next_player(team)
+        player_number = self.game.get_closest_player_to_ball(team)
         sim = self.get_player_simulator(team, player_number, set())
         action = self.get_player_action(team, player_number, sim)
         return action
 
     def get_next_player(self, team: str) -> int:
-        # Lógica para seleccionar el siguiente jugador que realizará una acción
-        # Puede basarse en la posición, función, o estrategia del equipo
         if team == T1:
             return self.team1.select_next_player()
         else:

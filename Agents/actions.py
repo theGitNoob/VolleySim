@@ -50,7 +50,6 @@ class Receive(Action):
 
     def execute(self):
         # Reducir la resistencia del jugador
-        self.get_player_data().stamina -= 1
 
         # Actualizar estadísticas del equipo y del jugador
         team_stats = self.get_statistics()
@@ -70,7 +69,6 @@ class Receive(Action):
 
     def reset(self):
         # Revertir resistencia
-        self.get_player_data().stamina += 1
 
         # Revertir estadísticas
         team_stats = self.get_statistics()
@@ -91,8 +89,6 @@ class Serve(Action):
         self.success: bool = False
 
     def execute(self):
-        # Reducir la resistencia del jugador
-        self.get_player_data().stamina -= 1
 
         # Actualizar estadísticas del equipo y del jugador
         team_stats = self.get_statistics()
@@ -102,8 +98,9 @@ class Serve(Action):
         player_stats.serves += 1
 
         # Determinar si el saque es exitoso
-        serving_skill = self.get_player_data().serving
-        self.success = random() <= (serving_skill / 100)
+        serving_skill = self.get_player_data().p_serve
+        #TODO test, change true
+        self.success = True  #random() <= (serving_skill / 100)
 
         if not self.success:
             # Error en el saque, punto para el oponente
@@ -112,7 +109,6 @@ class Serve(Action):
 
     def reset(self):
         # Revertir resistencia
-        self.get_player_data().stamina += 1
 
         # Revertir estadísticas
         team_stats = self.get_statistics()
@@ -133,7 +129,6 @@ class Dig(Action):
         self.success: bool = False
 
     def execute(self):
-        self.get_player_data().stamina -= 1
 
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -150,7 +145,6 @@ class Dig(Action):
             self.game.score_point(opponent_team)
 
     def reset(self):
-        self.get_player_data().stamina += 1
 
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -170,20 +164,15 @@ class Set(Action):
         self.success: bool = False
 
     def execute(self):
-        self.get_player_data().stamina -= 1
-
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
-        team_stats.sets += 1
-        player_stats.sets += 1
-
-        setting_skill = self.get_player_data().setting
+        team_stats.sets_won += 1
+        #TODO configurar setting skill in player data segun la posicion
+        setting_skill = 1679
         self.success = random() <= (setting_skill / 100)
 
     def reset(self):
-        self.get_player_data().stamina += 1
-
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -199,7 +188,6 @@ class Attack(Action):
         self.block_action: Block = None
 
     def execute(self):
-        self.get_player_data().stamina -= 2
 
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -230,7 +218,6 @@ class Attack(Action):
             self.game.score_point(opponent_team)
 
     def reset(self):
-        self.get_player_data().stamina += 2
 
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -261,8 +248,6 @@ class Block(Action):
         self.success: bool = False
 
     def execute(self):
-        self.get_player_data().stamina -= 2
-
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -273,8 +258,6 @@ class Block(Action):
         self.success = random() <= (blocking_skill / 100)
 
     def reset(self):
-        self.get_player_data().stamina += 2
-
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -284,23 +267,21 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(player, team, game)
         self.src = src
         self.dest = dest
 
     def execute(self):
-        self.get_player_data().stamina -= 1
         self.game.field.move_player(self.src, self.dest)
 
     def reset(self):
-        self.get_player_data().stamina += 1
         self.game.field.move_player(self.dest, self.src)
 
 
@@ -426,11 +407,12 @@ class Dispatch:
             # Error en el saque, punto para el oponente
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
-            self.game.change_serving_team(opponent_team)
+            self.game.change_serving_team()
         else:
             # Saque exitoso, el oponente intenta recibir
             opponent_team = T1 if action.team == T2 else T2
-            receiver_player = self.game.select_receiver(opponent_team)
+            self.game.move_ball((8, 4), (12, 4))
+            receiver_player = self.game.get_closest_player_to_ball(opponent_team)
             receive_action = Receive(receiver_player, opponent_team, self.game)
             self.dispatch(receive_action)
 
@@ -439,7 +421,7 @@ class Dispatch:
             # Error en la recepción, punto para el oponente
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
-            self.game.change_serving_team(opponent_team)
+            self.game.change_serving_team()
         else:
             # Recepción exitosa, proceder con la colocación
             setter_player = self.game.select_setter(action.team)

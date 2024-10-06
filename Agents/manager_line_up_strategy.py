@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from random import choice
-from typing import List
+from typing import List, Dict
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.enum import T1, PlayerRole
-from Tools.line_up import LineUp
+from Tools.line_up import LineUp, StandardVolleyballLineUp
 from Tools.player_data import PlayerData
 
 CANT_SIMULATIONS = 1  # Número de simulaciones para evaluar las alineaciones
@@ -14,40 +14,56 @@ def players_by_role(players: List[PlayerData], role: PlayerRole) -> List[PlayerD
     """
     Filtra y ordena los jugadores que pueden desempeñar un rol específico.
     """
-    eligible_players = [player for player in players if role.value == player.position]
+    eligible_players = [
+        player for player in players
+        if player.position == role.value or role.value in player.roles
+    ]
     eligible_players.sort(key=lambda x: x.overall, reverse=True)
     return eligible_players
 
 
-def possible_line_up(players: List[PlayerData]) -> LineUp:
+def possible_line_up(players: List[PlayerData], team_side: str) -> LineUp:
     """
     Genera una alineación posible asignando los mejores jugadores a cada rol.
     """
-    roles = ["Setter", "Outside Hitter", "Opposite", "Middle Blocker", "Libero"]
-    line_up = LineUp()
+    roles = [
+        PlayerRole.SETTER,
+        PlayerRole.OUTSIDE_HITTER,
+        PlayerRole.OUTSIDE_HITTER,
+        PlayerRole.OPPOSITE_HITTER,
+        PlayerRole.MIDDLE_BLOCKER,
+        PlayerRole.LIBERO
+    ]
+    lineup = StandardVolleyballLineUp(team_side=team_side)
     assigned_players = set()
 
     for role in roles:
         eligible_players = players_by_role(players, role)
         for player in eligible_players:
             if player.dorsal not in assigned_players:
-                line_up.add_player(player, role)
-                assigned_players.add(player.dorsal)
-                break
+                try:
+                    lineup.add_player(player, role.value)
+                    assigned_players.add(player.dorsal)
+                    break
+                except ValueError:
+                    continue  # No hay posición disponible para este rol en la alineación actual
 
-    # Si faltan jugadores para completar la alineación, llenar con jugadores restantes
-    remaining_players = [p for p in players if p.dorsal not in assigned_players]
-    remaining_players.sort(key=lambda x: x.overall, reverse=True)
+    # # Si faltan jugadores para completar la alineación, llenar con jugadores restantes
+    # remaining_players = [p for p in players if p.dorsal not in assigned_players]
+    # remaining_players.sort(key=lambda x: x.overall, reverse=True)
+    # 
+    # while len([grid for grid in lineup.line_up.values() if grid.player is not None]) < 6 and remaining_players:
+    #     player = remaining_players.pop(0)
+    #     try:
+    #         lineup.add_player(player, role.value)  # Asignar rol genérico
+    #         assigned_players.add(player.dorsal)
+    #     except ValueError:
+    #         continue  # No hay posición disponible para este rol
 
-    while len(line_up.players) < 6 and remaining_players:
-        player = remaining_players.pop(0)
-        line_up.add_player(player, "Substitute")  # Asignar rol genérico
-        assigned_players.add(player.dorsal)
-
-    return line_up
+    return lineup
 
 
-def possible_line_ups(players: List[PlayerData]) -> List[LineUp]:
+def possible_line_ups(players: List[PlayerData], team_side: str) -> List[LineUp]:
     """
     Genera todas las combinaciones posibles de alineaciones basadas en los roles.
     """
@@ -58,18 +74,18 @@ def possible_line_ups(players: List[PlayerData]) -> List[LineUp]:
         PlayerRole.OUTSIDE_HITTER,
         PlayerRole.OPPOSITE_HITTER,
         PlayerRole.MIDDLE_BLOCKER,
-        PlayerRole.LIBERO,
+        PlayerRole.LIBERO
     ]
     line_ups = []
 
     # Obtener los mejores jugadores para cada rol
     role_players = {role: players_by_role(players, role) for role in roles}
 
-    # Generar permutaciones de jugadores para los roles
+    # Generar permutaciones de roles
     role_permutations = list(permutations(roles))
 
     for perm in role_permutations:
-        line_up = LineUp()
+        lineup = StandardVolleyballLineUp(team_side=team_side)
         assigned_players = set()
         valid_line_up = True
 
@@ -77,17 +93,20 @@ def possible_line_ups(players: List[PlayerData]) -> List[LineUp]:
             eligible_players = role_players[role]
             for player in eligible_players:
                 if player.dorsal not in assigned_players:
-                    line_up.add_player(player, role)
-                    assigned_players.add(player.dorsal)
-                    break
-                else:
-                    valid_line_up = False
-                    break  # No hay jugadores disponibles para este rol
+                    try:
+                        lineup.add_player(player, role.value)
+                        assigned_players.add(player.dorsal)
+                        break
+                    except ValueError:
+                        continue  # No hay posición disponible para este rol en la alineación actual
+            else:
+                valid_line_up = False
+                break  # No hay jugadores disponibles para este rol
 
-        if valid_line_up and len(line_up.players) == 6:
-            line_ups.append(line_up)
+        if valid_line_up and len([grid for grid in lineup.line_up.values() if grid.player is not None]) == 6:
+            line_ups.append(lineup)
 
-    return line_ups if line_ups else [possible_line_up(players)]
+    return line_ups if line_ups else [possible_line_up(players, team_side)]
 
 
 class ManagerLineUpStrategy(ABC):
@@ -106,7 +125,7 @@ class LineUpRandomStrategy(ManagerLineUpStrategy):
             if team == T1
             else list(simulator.game.t2.data.values())
         )
-        line_ups = possible_line_ups(players)
+        line_ups = possible_line_ups(players, team_side=team)
         return choice(line_ups)
 
 
@@ -120,12 +139,17 @@ class LineUpFixedStrategy(ManagerLineUpStrategy):
             if team == T1
             else list(simulator.game.t2.data.values())
         )
-        line_ups = possible_line_ups(players)
+        line_ups = possible_line_ups(players, team_side=team)
 
         # Seleccionar la alineación con el mayor puntaje total
         best_line_up = max(
             line_ups,
-            key=lambda lu: sum(player.overall for player in lu.players.values()),
+            key=lambda lu: sum(
+                player.overall
+                for grid in lu.line_up.values()
+                if grid.player is not None
+                for player in [next(p for p in players if p.dorsal == grid.player)]
+            ),
         )
         return best_line_up
 
@@ -143,8 +167,8 @@ class LineUpSimulateStrategy(ManagerLineUpStrategy):
         t1_players = list(simulator.game.t1.data.values())
         t2_players = list(simulator.game.t2.data.values())
 
-        t1_line_ups = possible_line_ups(t1_players)
-        t2_line_ups = possible_line_ups(t2_players)
+        t1_line_ups = possible_line_ups(t1_players, team_side="T1")
+        t2_line_ups = possible_line_ups(t2_players, team_side="T2")
 
         results = []
 

@@ -9,3 +9,6 @@ class TeamAgent:
         self.name = name
         self.manager: Manager = manager
         self.players: Dict[int, Player] = players
+        
+    def select_next_player(self):
+        return self.manager.get_line_up().next_player()

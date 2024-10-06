@@ -59,8 +59,8 @@ class Player:
         actions: List[Action] = [Nothing(self.dorsal, self.team, game)]
 
         # TODO: Remove
-        if self.get_data(game).stamina <= 0:
-            return actions
+        # if self.get_data(game).stamina <= 0:
+        #     return actions
 
         # Comprobar si es nuestro turno de servir y si el jugador es el servidor
         if game.is_our_serve(self.team) and game.is_player_server(self.dorsal):

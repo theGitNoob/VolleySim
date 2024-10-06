@@ -15,7 +15,7 @@ class PlayerData:
         self.p_serve: int = self._set_int_value(df["p_Serve"])
         self.p_receive: int = self._set_int_value(df["p_Receive"])
         self.country: str = df["Team"]
-        self.dorsal: int = df["Name"]
+        self.dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else self._generate_dorsal()
 
         # Roles que puede desempeñar el jugador (si aplica)
         self.roles: List[str] = (
@@ -37,6 +37,10 @@ class PlayerData:
         self.o_p_receive: int = self._set_int_value(df["p_Receive"])
         self.o_country: str = df["Team"]
         self.o_dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else -1
+
+    def _generate_dorsal(self):
+        # Generar un dorsal único basado en el hash del nombre
+        return abs(hash(self.name)) % 100  # Por ejemplo, un número entre 0 y 99
 
     def _set_int_value(self, value):
         if value != value:  # Verifica si el valor es NaN

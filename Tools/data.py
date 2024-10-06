@@ -41,6 +41,9 @@ class StatisticsTeam:
         self.kills: int = 0  # Kills totales del equipo
         self.rotations: int = 0  # Número de rotaciones realizadas
         self.substitutions: int = 0  # Número de sustituciones realizadas
+        self.serves: int = 0  # Servicios totales del equipo
+        self.sets_won: int = 0  # Sets ganados por el equipo
+        self.sets_lost: int = 0  # Sets perdidos por el equipo
         self.lineup: List[int] = (
             []
         )  # Lista de dorsales de los jugadores en la alineación

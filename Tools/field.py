@@ -50,7 +50,7 @@ class GridField:
             color = "\033[34m" if self.team == T1 else "\033[31m"
             return f"{color}{self.player:02}\033[0m"
         else:
-            return "  "
+            return "XX"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, GridField):
@@ -63,13 +63,13 @@ class Field:
     Gestiona el campo de juego y las operaciones relacionadas.
     """
 
-    def __init__(self, rows: int = 18, columns: int = 9):
+    def __init__(self, rows: int = 19, columns: int = 9):
         self.rows = rows
         self.columns = columns
         self.grid: List[List[GridField]] = [
             [GridField(r, c) for c in range(columns)] for r in range(rows)
         ]
-        self.net_row = rows // 2
+        self.net_row = 9  # Fila de la red
         for c in range(columns):
             self.grid[self.net_row][c].is_net = True
 
@@ -121,7 +121,9 @@ class Field:
         # Detectar si la pelota cruzó la red
         ball_crossed_net = (x_src < self.net_row and x_dest >= self.net_row) or (
             x_src > self.net_row and x_dest <= self.net_row
-        )
+        ) 
+        # Printear el campo actual
+        print(self)
 
         if ball_crossed_net:
             return "crossed_net"
