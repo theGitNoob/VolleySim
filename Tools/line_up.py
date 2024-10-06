@@ -1,7 +1,7 @@
 ﻿from abc import ABC
 from typing import Dict, Optional
 
-from Tools.enum import PlayerRole
+from Tools.enum import PlayerRole, dictT1,dictT2
 from Tools.player_data import PlayerData
 
 # Estrategias
@@ -61,14 +61,19 @@ class LineUp(ABC):
         line_up_position = self.get_player_position(player_dorsal)
         return line_up_position.player_role if line_up_position else None
 
-    def rotate(self):
-        # Rotar posiciones en sentido de las agujas del reloj
-        position_numbers = [1, 6, 5, 4, 3, 2]
-        rotated_positions = position_numbers[-1:] + position_numbers[:-1]
+    def rotate(self, team: str):
+        # Rotar posiciones en sentido de las agujas del reloj según las reglas del voleibol
+        position_numbers = [1, 2, 3, 4, 5, 6]
+        rotated_positions = position_numbers[-1:] + position_numbers[:-1]  # Mover el último al inicio
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):
-            temp_line_up[new_pos_num] = self.line_up[old_pos_num]
-            temp_line_up[new_pos_num].position_number = new_pos_num
+            for grid in self.line_up.values():
+                if grid.position_number == old_pos_num:
+                    grid.position_number = new_pos_num
+                    grid.col = dictT1[new_pos_num][1] if team == "T1" else dictT2[new_pos_num][1]
+                    grid.row = dictT1[new_pos_num][0] if team == "T1" else dictT2[new_pos_num][0]
+                    temp_line_up[new_pos_num] = grid
+                    break
         self.line_up = temp_line_up
 
     def reset_positions(self, team_side: str) -> None:
@@ -97,12 +102,12 @@ class StandardVolleyballLineUp(LineUp):
     def _create_positions(self, team_side: str) -> Dict[int, LineUpGrid]:
         # Posiciones base (Equipo 1)
         positions = {
-            1: LineUpGrid(8, 4, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
-            2: LineUpGrid(1, 7, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 2
-            3: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
-            4: LineUpGrid(1, 1, 1, PlayerRole.SETTER),  # Posición 4
-            5: LineUpGrid(7, 1, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 5
-            6: LineUpGrid(7, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
+            3: LineUpGrid(8, 4, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
+            5: LineUpGrid(1, 7, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 2
+            6: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
+            1: LineUpGrid(1, 1, 1, PlayerRole.SETTER),  # Posición 4
+            2: LineUpGrid(7, 1, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 5
+            4: LineUpGrid(7, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
         }
 
         if team_side == "T2":

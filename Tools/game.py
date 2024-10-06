@@ -5,6 +5,7 @@ from Tools.enum import T1, T2
 from Tools.field import Field
 from Tools.line_up import LineUp
 from Tools.utils import coin_toss
+import time
 
 
 class Game:
@@ -45,9 +46,9 @@ class Game:
             self.serving_team = team
             # Rotar jugadores del equipo que ganó el servicio
             if team == T1:
-                self.field.rotate_players(team, self.t1.line_up)
+                self.field.rotate_players(team, self.t1.line_up, self.t2.line_up)
             else:
-                self.field.rotate_players(team, self.t2.line_up)
+                self.field.rotate_players(team, self.t2.line_up, self.t1.line_up)
 
         # Reiniciar toques y estados
         self.touches[T1] = 0
@@ -72,6 +73,7 @@ class Game:
         return False
 
     def end_set(self):
+        print(str(self.t1_score) + " **************** " + str(self.t2_score))
         if self.t1_score > self.t2_score:
             self.t1_sets += 1
         else:
@@ -84,6 +86,8 @@ class Game:
         if self.t1_sets == self.sets_to_win or self.t2_sets == self.sets_to_win:
             self.end_match()
         else:
+            print(self.field)
+            time.sleep(20)
             self.field.reset()
             if self.current_set == 5:
                 self.serving_team = T1 if coin_toss() else T2
@@ -304,13 +308,5 @@ class Game:
                 closest_player = player_id
         return closest_player
 
-    def change_serving_team(self):
-        self.serving_team = T1 if self.serving_team == T2 else T2
-        serving_grid = self.field.find_player_in_position(1, self.serving_team)
-        if serving_grid:
-            serving_grid.ball = True
-        else:
-            raise Exception("No se encontró el jugador que sirve")
-        
     def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> str:
         return self.field.move_ball(src, dest)

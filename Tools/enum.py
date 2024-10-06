@@ -11,3 +11,22 @@ class PlayerRole(Enum):
     OPPOSITE_HITTER = "O"  # Opuesto
     LIBERO = "L"  # Líbero
     SUBSTITUTE = "SUB"  # Suplente
+
+
+dictT1 = {
+    1: (1, 1),
+    5: (1, 7),
+    3: (8, 4),
+    4: (7, 7),
+    2: (7, 1),
+    6: (4, 4),
+}
+
+dictT2 = {
+    1: (17, 1),
+    2: (17, 7),
+    3: (10, 4),
+    4: (11, 7),
+    5: (11, 1),
+    6: (14, 4),
+}

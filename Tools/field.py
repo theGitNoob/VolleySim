@@ -11,14 +11,14 @@ class GridField:
     """
 
     def __init__(
-        self,
-        row: int,
-        col: int,
-        player: int = -1,
-        ball: bool = False,
-        team: str = "",
-        is_net: bool = False,
-        position: int = 0,
+            self,
+            row: int,
+            col: int,
+            player: int = -1,
+            ball: bool = False,
+            team: str = "",
+            is_net: bool = False,
+            position: int = 0,
     ) -> None:
         self.row: int = row
         self.col: int = col
@@ -33,7 +33,7 @@ class GridField:
 
     def is_contiguous(self, g: "GridField"):
         return (abs(self.row - g.row) == 1 and abs(self.col - g.col) == 1) or (
-            abs(self.row - g.row) + abs(self.col - g.col) == 1
+                abs(self.row - g.row) + abs(self.col - g.col) == 1
         )
 
     def str_code(self) -> str:
@@ -96,7 +96,7 @@ class Field:
             self.grid[r][c].position = pos_number  # Posición de rotación
 
     def find_player_in_position(
-        self, position_number: int, team: str
+            self, position_number: int, team: str
     ) -> Optional[GridField]:
         """
         Encuentra al jugador en una posición de rotación específica para un equipo.
@@ -119,9 +119,9 @@ class Field:
         self.grid[x_dest][y_dest].ball = True
 
         # Detectar si la pelota cruzó la red
-        ball_crossed_net = (x_src < self.net_row and x_dest >= self.net_row) or (
-            x_src > self.net_row and x_dest <= self.net_row
-        ) 
+        ball_crossed_net = (x_src < self.net_row <= x_dest) or (
+                x_src > self.net_row >= x_dest
+        )
         # Printear el campo actual
         print(self)
 
@@ -130,9 +130,9 @@ class Field:
         else:
             return "normal"
 
-    def rotate_players(self, team: str, line_up: LineUp):
+    def rotate_players(self, team: str, line_up_to_rotate: LineUp, line_up: LineUp):
         # Rotar las posiciones en el line-up
-        line_up.rotate()
+        line_up_to_rotate.rotate(team)
 
         # Limpiar las posiciones actuales en el campo
         for row in self.grid:
@@ -143,7 +143,9 @@ class Field:
                     grid.position = 0
 
         # Reubicar los jugadores en el campo según el line-up rotado
-        for pos_number, grid_info in line_up.line_up.items():
+        for pos_number, grid_info in line_up_to_rotate.line_up.items():
+            if pos_number == 1:
+                self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
             self.grid[r][c].team = team
