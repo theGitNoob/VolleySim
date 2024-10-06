@@ -59,7 +59,7 @@ class Receive(Action):
         player_stats.receives += 1
 
         # Determinar si la recepción es exitosa
-        receiving_skill = self.get_player_data().receiving
+        receiving_skill = self.get_player_data().p_receive
         self.success = random() <= (receiving_skill / 100)
 
         if not self.success:
@@ -427,7 +427,7 @@ class Dispatch:
         else:
             # Saque exitoso, el oponente intenta recibir
             opponent_team = T1 if action.team == T2 else T2
-            self.game.move_ball((8, 4), (12, 4))
+            #self.game.move_ball((8, 4), (12, 4))
             receiver_player = self.game.get_closest_player_to_ball(opponent_team)
             receive_action = Receive(receiver_player, opponent_team, self.game)
             self.dispatch(receive_action)

@@ -69,7 +69,7 @@ class Field:
         self.grid: List[List[GridField]] = [
             [GridField(r, c) for c in range(columns)] for r in range(rows)
         ]
-        self.net_row = 9  # Fila de la red
+        self.net_row = 9 # Fila de la red
         for c in range(columns):
             self.grid[self.net_row][c].is_net = True
 
@@ -80,9 +80,11 @@ class Field:
         for c in range(self.columns):
             self.grid[self.net_row][c].is_net = True
 
-    def conf_line_ups(self, line_up_h: LineUp, line_up_a: LineUp):
+    def conf_line_ups(self, line_up_h: LineUp, line_up_a: LineUp, team: str | None = None):
         # Configurar alineaciones para el equipo de casa
         for pos_number, grid_info in line_up_h.line_up.items():
+            if pos_number == 1 and team == T1:
+                self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
             self.grid[r][c].team = T1
@@ -90,6 +92,8 @@ class Field:
 
         # Configurar alineaciones para el equipo visitante
         for pos_number, grid_info in line_up_a.line_up.items():
+            if pos_number == 1 and team == T2:
+                self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
             self.grid[r][c].team = T2
