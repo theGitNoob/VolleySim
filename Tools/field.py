@@ -11,14 +11,14 @@ class GridField:
     """
 
     def __init__(
-            self,
-            row: int,
-            col: int,
-            player: int = -1,
-            ball: bool = False,
-            team: str = "",
-            is_net: bool = False,
-            position: int = 0,
+        self,
+        row: int,
+        col: int,
+        player: int = -1,
+        ball: bool = False,
+        team: str = "",
+        is_net: bool = False,
+        position: int = 0,
     ) -> None:
         self.row: int = row
         self.col: int = col
@@ -33,7 +33,7 @@ class GridField:
 
     def is_contiguous(self, g: "GridField"):
         return (abs(self.row - g.row) == 1 and abs(self.col - g.col) == 1) or (
-                abs(self.row - g.row) + abs(self.col - g.col) == 1
+            abs(self.row - g.row) + abs(self.col - g.col) == 1
         )
 
     def str_code(self) -> str:
@@ -69,7 +69,7 @@ class Field:
         self.grid: List[List[GridField]] = [
             [GridField(r, c) for c in range(columns)] for r in range(rows)
         ]
-        self.net_row = 9 # Fila de la red
+        self.net_row = 9  # Fila de la red
         for c in range(columns):
             self.grid[self.net_row][c].is_net = True
 
@@ -80,7 +80,9 @@ class Field:
         for c in range(self.columns):
             self.grid[self.net_row][c].is_net = True
 
-    def conf_line_ups(self, line_up_h: LineUp, line_up_a: LineUp, team: str | None = None):
+    def conf_line_ups(
+        self, line_up_h: LineUp, line_up_a: LineUp, team: str | None = None
+    ):
         # Configurar alineaciones para el equipo de casa
         for pos_number, grid_info in line_up_h.line_up.items():
             if pos_number == 1 and team == T1:
@@ -100,7 +102,7 @@ class Field:
             self.grid[r][c].position = pos_number  # Posición de rotación
 
     def find_player_in_position(
-            self, position_number: int, team: str
+        self, position_number: int, team: str
     ) -> Optional[GridField]:
         """
         Encuentra al jugador en una posición de rotación específica para un equipo.
@@ -124,7 +126,7 @@ class Field:
 
         # Detectar si la pelota cruzó la red
         ball_crossed_net = (x_src < self.net_row <= x_dest) or (
-                x_src > self.net_row >= x_dest
+            x_src > self.net_row >= x_dest
         )
         # Printear el campo actual
         print(self)

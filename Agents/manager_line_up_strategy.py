@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from random import choice
-from typing import List, Dict
+from typing import List
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.enum import T1, PlayerRole
@@ -15,7 +15,8 @@ def players_by_role(players: List[PlayerData], role: PlayerRole) -> List[PlayerD
     Filtra y ordena los jugadores que pueden desempeñar un rol específico.
     """
     eligible_players = [
-        player for player in players
+        player
+        for player in players
         if player.position == role.value or role.value in player.roles
     ]
     eligible_players.sort(key=lambda x: x.overall, reverse=True)
@@ -32,7 +33,7 @@ def possible_line_up(players: List[PlayerData], team_side: str) -> LineUp:
         PlayerRole.OUTSIDE_HITTER,
         PlayerRole.OPPOSITE_HITTER,
         PlayerRole.MIDDLE_BLOCKER,
-        PlayerRole.LIBERO
+        PlayerRole.LIBERO,
     ]
     lineup = StandardVolleyballLineUp(team_side=team_side)
     assigned_players = set()
@@ -51,7 +52,7 @@ def possible_line_up(players: List[PlayerData], team_side: str) -> LineUp:
     # # Si faltan jugadores para completar la alineación, llenar con jugadores restantes
     # remaining_players = [p for p in players if p.dorsal not in assigned_players]
     # remaining_players.sort(key=lambda x: x.overall, reverse=True)
-    # 
+    #
     # while len([grid for grid in lineup.line_up.values() if grid.player is not None]) < 6 and remaining_players:
     #     player = remaining_players.pop(0)
     #     try:
@@ -74,7 +75,7 @@ def possible_line_ups(players: List[PlayerData], team_side: str) -> List[LineUp]
         PlayerRole.OUTSIDE_HITTER,
         PlayerRole.OPPOSITE_HITTER,
         PlayerRole.MIDDLE_BLOCKER,
-        PlayerRole.LIBERO
+        PlayerRole.LIBERO,
     ]
     line_ups = []
 
@@ -103,7 +104,13 @@ def possible_line_ups(players: List[PlayerData], team_side: str) -> List[LineUp]
                 valid_line_up = False
                 break  # No hay jugadores disponibles para este rol
 
-        if valid_line_up and len([grid for grid in lineup.line_up.values() if grid.player is not None]) == 6:
+        if (
+            valid_line_up
+            and len(
+                [grid for grid in lineup.line_up.values() if grid.player is not None]
+            )
+            == 6
+        ):
             line_ups.append(lineup)
 
     return line_ups if line_ups else [possible_line_up(players, team_side)]

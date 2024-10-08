@@ -164,7 +164,7 @@ class Set(Action):
 
     def execute(self):
         team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
+        self.get_player_statistics()
 
         team_stats.sets_won += 1
 
@@ -238,7 +238,7 @@ class Attack(Action):
         # Lógica para seleccionar al jugador bloqueador
         team_data = self.game.t1 if team == T1 else self.game.t2
         # Seleccionar un bloqueador disponible
-        #TODO implementar seleccion de blocker
+        # TODO implementar seleccion de blocker
         return self.game.get_closest_player_to_ball(team)
 
 
@@ -267,12 +267,12 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(player, team, game)
         self.src = src
@@ -388,27 +388,57 @@ class Dispatch:
         # Verificar si la acción desencadena otros eventos
         if isinstance(action, Serve):
             print(
-                action.team + " " + str(action.player) + " sirve " + ("satisfactorio" if action.success else "fallido"))
+                action.team
+                + " "
+                + str(action.player)
+                + " sirve "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.serve_trigger(action)
         elif isinstance(action, Receive):
-            print(action.team + " " + str(action.player) + " recibe " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " recibe "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.receive_trigger(action)
         elif isinstance(action, Set):
-            print(action.team + " " + str(action.player) + " coloca " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " coloca "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.set_trigger(action)
         elif isinstance(action, Attack):
             print(
-                action.team + " " + str(action.player) + " ataca " + ("satisfactorio" if action.success else "fallido"))
+                action.team
+                + " "
+                + str(action.player)
+                + " ataca "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.attack_trigger(action)
         elif isinstance(action, Block):
-            print(action.team + " " + str(action.player) + " bloquea " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " bloquea "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.block_trigger(action)
         elif isinstance(action, Dig):
-            print(action.team + " " + str(action.player) + " defiende " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " defiende "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.dig_trigger(action)
         elif isinstance(action, Move):
             print(action.team + " " + str(action.player) + " se mueve")
@@ -427,7 +457,7 @@ class Dispatch:
         else:
             # Saque exitoso, el oponente intenta recibir
             opponent_team = T1 if action.team == T2 else T2
-            #self.game.move_ball((8, 4), (12, 4))
+            # self.game.move_ball((8, 4), (12, 4))
             receiver_player = self.game.get_closest_player_to_ball(opponent_team)
             receive_action = Receive(receiver_player, opponent_team, self.game)
             self.dispatch(receive_action)
@@ -439,7 +469,7 @@ class Dispatch:
             self.game.score_point(opponent_team)
         else:
             # Recepción exitosa, proceder con la colocación
-            #TODO implementar seleccion de setter
+            # TODO implementar seleccion de setter
             setter_player = self.game.get_closest_player_to_ball(action.team)
             set_action = Set(setter_player, action.team, self.game)
             self.dispatch(set_action)
@@ -451,7 +481,7 @@ class Dispatch:
             self.game.score_point(opponent_team)
         else:
             # Colocación exitosa, proceder con el ataque
-            #TODO implementar seleccion de attacker
+            # TODO implementar seleccion de attacker
             attacker_player = self.game.get_closest_player_to_ball(action.team)
             attack_action = Attack(attacker_player, action.team, self.game)
             self.dispatch(attack_action)
@@ -464,7 +494,7 @@ class Dispatch:
         else:
             # Ataque exitoso, el oponente intenta bloquear
             opponent_team = T1 if action.team == T2 else T2
-            #TODO implementar seleccion de blocker
+            # TODO implementar seleccion de blocker
             blocker_player = self.game.get_closest_player_to_ball(opponent_team)
             block_action = Block(blocker_player, opponent_team, self.game)
             self.dispatch(block_action)
@@ -485,7 +515,7 @@ class Dispatch:
             self.game.score_point(opponent_team)
         else:
             # Defensa exitosa, proceder con la colocación
-            #TODO implementar seleccion de setter
+            # TODO implementar seleccion de setter
             setter_player = self.game.get_closest_player_to_ball(action.team)
             set_action = Set(setter_player, action.team, self.game)
             self.dispatch(set_action)

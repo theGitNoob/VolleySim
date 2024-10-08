@@ -1,3 +1,4 @@
+import time
 from typing import Optional, Tuple
 
 from Tools.data import TeamData
@@ -5,7 +6,6 @@ from Tools.enum import T1, T2
 from Tools.field import Field
 from Tools.line_up import LineUp
 from Tools.utils import coin_toss
-import time
 
 
 class Game:
@@ -66,8 +66,8 @@ class Game:
 
     def has_set_ended(self) -> bool:
         if (
-                self.t1_score >= self.points_to_win_set
-                or self.t2_score >= self.points_to_win_set
+            self.t1_score >= self.points_to_win_set
+            or self.t2_score >= self.points_to_win_set
         ) and abs(self.t1_score - self.t2_score) >= 2:
             return True
         return False
@@ -96,8 +96,12 @@ class Game:
             # Reiniciar posiciones de los jugadores
             self.t1.line_up.reset_positions("T1")
             self.t2.line_up.reset_positions(self.t2.name)
-            #TODO hacer un global_serving_team para hacer el cambio de servicio despues de cada set
-            self.field.conf_line_ups(self.t1.line_up, self.t2.line_up, "T2" if self.serving_team == T1 else "T1")
+            # TODO hacer un global_serving_team para hacer el cambio de servicio despues de cada set
+            self.field.conf_line_ups(
+                self.t1.line_up,
+                self.t2.line_up,
+                "T2" if self.serving_team == T1 else "T1",
+            )
             print("Nuevo campo")
             print(self.field)
 
@@ -153,9 +157,9 @@ class Game:
 
     def is_finish(self) -> bool:
         return (
-                self.instance >= self.cant_instances + 1
-                or self.t1_sets > self.max_sets // 2
-                or self.t2_sets > self.max_sets // 2
+            self.instance >= self.cant_instances + 1
+            or self.t1_sets > self.max_sets // 2
+            or self.t2_sets > self.max_sets // 2
         )
 
     def to_json(self):
@@ -201,10 +205,10 @@ class Game:
         player_grid = self.field.find_player(dorsal, team)
         ball_grid = self.field.find_ball()
         return (
-                self.field.int_distance(
-                    (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
-                )
-                <= 1
+            self.field.int_distance(
+                (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
+            )
+            <= 1
         )
 
     def is_opponent_attacking(self) -> bool:
@@ -214,7 +218,7 @@ class Game:
     def ball_in_opponent_court(self) -> bool:
         ball_grid = self.field.find_ball()
         return (ball_grid.row < self.field.net_row and self.serving_team == T1) or (
-                ball_grid.row >= self.field.net_row and self.serving_team == T2
+            ball_grid.row >= self.field.net_row and self.serving_team == T2
         )
 
     def ball_in_our_court(self) -> bool:
@@ -296,7 +300,7 @@ class Game:
     def get_team_score(self, team):
         return self.t1_score if team == T1 else self.t2_score
 
-    #Method to return the player more close to the ball
+    # Method to return the player more close to the ball
     def get_closest_player_to_ball(self, team: str) -> int:
         ball_grid = self.field.find_ball()
         closest_player = None
