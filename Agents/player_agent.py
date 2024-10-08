@@ -2,7 +2,6 @@
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.field import *
-
 from .actions import *
 from .player_strategy import PlayerStrategy, VolleyballStrategy
 
@@ -40,41 +39,43 @@ class Player:
 
     @staticmethod
     def empty_adjacent_grids(
-        visible_grids: List[GridField], p_grid: GridField
+            visible_grids: List[GridField], p_grid: GridField
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if p_grid.is_contiguous(g) and g.is_empty():
                 yield g
 
     def friendly_grids(
-        self, visible_grids: List[GridField]
+            self, visible_grids: List[GridField]
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if g.team == self.team:
                 yield g
 
     def construct_actions(
-        self, game: Game, visible_grids: List[GridField], p_grid: GridField
+            self, game: Game, visible_grids: List[GridField], p_grid: GridField
     ) -> List[Action]:
         actions: List[Action] = [Nothing(self.dorsal, self.team, game)]
 
-        # TODO: Remove
-        # if self.get_data(game).stamina <= 0:
-        #     return actions
+        if game.last_player_touched == self.dorsal:
+            return actions
 
-        # Comprobar si es nuestro turno de servir y si el jugador es el servidor
-        if game.is_our_serve(self.team) and game.is_player_server(self.dorsal):
-            actions.append(Serve(self.dorsal, self.team, game))
+        # Si es nuestro saque solo agregamos la acción de saque al jugador que tiene el saque
+        if game.is_our_serve(self.team):
+            if game.is_player_server(self.dorsal):
+                actions.append(Serve(self.dorsal, self.team, game))
+
+        # La pelota está en nuestro lado
         elif game.is_ball_on_our_side(self.team):
-            # La pelota está en nuestro lado
             if game.is_ball_coming_to_player(self.dorsal, self.team):
-                # El jugador puede hacer un dig
-                actions.append(Dig(self.dorsal, self.team, game))
-            else:
-                # El jugador puede colocar o atacar si no se han hecho 3 toques
-                if game.touches[self.team] < 3:
+                if game.last_team_touched != self.team:
+                    actions.append(Dig(self.dorsal, self.team, game))
+                elif game.touches[self.team] == 1:
                     actions.append(Set(self.dorsal, self.team, game))
                     actions.append(Attack(self.dorsal, self.team, game))
+                elif game.touches[self.team] == 2:
+                    actions.append(Attack(self.dorsal, self.team, game))
+            else:
                 # El jugador puede moverse dentro de la cancha
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
                     dest = (grid.row, grid.col)
@@ -87,10 +88,10 @@ class Player:
             # La pelota está en el lado del oponente o viene un ataque
             if game.is_opponent_attacking():
                 # El jugador puede bloquear
+                # TODO: Chequear que el jugador que vaya a bloquear no esté zaguero
                 actions.append(Block(self.dorsal, self.team, game))
                 actions.append(Receive(self.dorsal, self.team, game))
             else:
-                # El jugador puede reposicionarse
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
                     dest = (grid.row, grid.col)
                     actions.append(
