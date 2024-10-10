@@ -1,7 +1,8 @@
 ﻿from Tools.line_up import LineUp
 
 from .actions import Action
-from .manager_action_strategy import ActionRandomStrategy, ManagerActionStrategy
+from .manager_action_strategy import (ActionRandomStrategy,
+                                      ManagerActionStrategy)
 from .manager_line_up_strategy import ManagerLineUpStrategy
 from .simulator_agent import SimulatorAgent
 

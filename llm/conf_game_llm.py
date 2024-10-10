@@ -4,17 +4,13 @@ from typing import Tuple
 
 from pandas import DataFrame
 
-from Agents.manager_action_strategy import (
-    ActionMiniMaxStrategy,
-    ActionRandomStrategy,
-    ActionSimulateStrategy,
-    ManagerActionStrategy,
-)
-from Agents.manager_line_up_strategy import (
-    LineUpRandomStrategy,
-    LineUpSimulateStrategy,
-    ManagerLineUpStrategy,
-)
+from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
+                                            ActionRandomStrategy,
+                                            ActionSimulateStrategy,
+                                            ManagerActionStrategy)
+from Agents.manager_line_up_strategy import (LineUpRandomStrategy,
+                                             LineUpSimulateStrategy,
+                                             ManagerLineUpStrategy)
 from Agents.player_strategy import PlayerStrategy, VolleyballStrategy
 from Simulator.simulation_params import SimulationParams
 

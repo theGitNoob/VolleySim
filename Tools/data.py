@@ -22,6 +22,7 @@ class StatisticsPlayer:
         self.assists: int = 0  # Asistencias (colocaciones exitosas)
         self.rotations: int = 0  # Rotaciones en las que participó
         self.minutes_played: int = 0  # Minutos jugados
+        self.sets: int = 0  # Sets efectivos
 
 
 class StatisticsTeam:
@@ -45,6 +46,7 @@ class StatisticsTeam:
         self.sets_won: int = 0  # Sets ganados por el equipo
         self.sets_lost: int = 0  # Sets perdidos por el equipo
         self.receives: int = 0  # Recepciones totales del equipo
+        self.sets: int = 0  # Sets efectivos del equipo
         self.lineup: List[int] = (
             []
         )  # Lista de dorsales de los jugadores en la alineación

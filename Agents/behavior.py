@@ -7,7 +7,8 @@ from Tools.enum import T1
 from Tools.game import Game
 from Tools.line_up import LineUp
 
-from .actions import Action, Attack, Block, Dig, Move, Nothing, Receive, Serve, Set
+from .actions import (Action, Attack, Block, Dig, Move, Nothing, Receive,
+                      Serve, Set)
 
 
 class Behavior:

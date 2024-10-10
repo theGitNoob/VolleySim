@@ -10,8 +10,17 @@ from Tools.game import Game
 
 
 class Action(ABC):
-    def __init__(self, player: int, team: str, game: Game) -> None:
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
         super().__init__()
+        self.src: Tuple[int, int] = src
+        self.dest: Tuple[int, int] = dest
         self.player: int = player
         self.team: str = team
         self.game: Game = game
@@ -44,8 +53,15 @@ class Action(ABC):
 
 
 class Receive(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
@@ -66,6 +82,8 @@ class Receive(Action):
             # Error en la recepción, punto para el oponente
             opponent_team = T1 if self.team == T2 else T1
             self.game.score_point(opponent_team)
+        else:
+            self.game.field.move_ball(self.src, self.dest)
 
     def reset(self):
         # Revertir resistencia
@@ -84,8 +102,15 @@ class Receive(Action):
 
 
 class Serve(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+    def __init__(
+        self,
+        src: tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
@@ -99,12 +124,16 @@ class Serve(Action):
 
         # Determinar si el saque es exitoso
         serving_skill = self.get_player_data().p_serve
+
+        # TODO: Refactor this
         self.success = random() <= serving_skill
 
         if not self.success:
             # Error en el saque, punto para el oponente
             opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
+        else:
+            self.game.field.move_ball(self.src, self.dest)
 
     def reset(self):
         # Revertir resistencia
@@ -123,8 +152,15 @@ class Serve(Action):
 
 
 class Dig(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+    def __init__(
+        self,
+        src: tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
@@ -142,6 +178,8 @@ class Dig(Action):
             # Error en el dig, punto para el oponente
             opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
+        else:
+            self.game.move_ball(self.src, self.dest)
 
     def reset(self):
 
@@ -158,18 +196,32 @@ class Dig(Action):
 
 
 class Set(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
         team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
+        self.get_player_statistics()
 
         team_stats.sets_won += 1
 
         setting_skill = self.get_player_data().p_set
         self.success = random() <= setting_skill
+        if not self.success:
+            # Error en la colocación, punto para el oponente
+            opponent_team = T1 if self.team == T2 else T2
+            self.game.score_point(opponent_team)
+
+        else:
+            self.game.move_ball(self.src, self.dest)
 
     def reset(self):
         team_stats = self.get_statistics()
@@ -180,11 +232,16 @@ class Set(Action):
 
 
 class Attack(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
         super().__init__(player, team, game)
         self.success: bool = False
-        self.blocked: bool = False
-        self.block_action: Block = None
 
     def execute(self):
 
@@ -197,24 +254,13 @@ class Attack(Action):
         attacking_skill = self.get_player_data().p_attack
         self.success = random() <= attacking_skill
 
-        if self.success:
-            # Intentar bloqueo del oponente
-            opponent_team = T1 if self.team == T2 else T2
-            blocker_player = self.select_blocker(opponent_team)
-            self.block_action = Block(blocker_player, opponent_team, self.game)
-            self.block_action.execute()
-
-            if self.block_action.success:
-                self.blocked = True
-                # Punto para el equipo oponente
-                self.game.score_point(opponent_team)
-            else:
-                # Punto para el equipo atacante
-                self.game.score_point(self.team)
-        else:
+        if not self.success:
             # Error en el ataque, punto para el oponente
             opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
+        else:
+            # El ataque es exitoso
+            self.game.field.move_ball(self.src, self.dest)
 
     def reset(self):
 
@@ -224,27 +270,17 @@ class Attack(Action):
         team_stats.attacks -= 1
         player_stats.attacks -= 1
 
-        if self.success and self.block_action:
-            self.block_action.reset()
-
-        # Revertir el punto otorgado
-        if self.success and not self.blocked:
-            self.game.revert_point(self.team)
-        else:
-            opponent_team = T1 if self.team == T2 else T2
-            self.game.revert_point(opponent_team)
-
-    def select_blocker(self, team: str) -> int:
-        # Lógica para seleccionar al jugador bloqueador
-        team_data = self.game.t1 if team == T1 else self.game.t2
-        # Seleccionar un bloqueador disponible
-        #TODO implementar seleccion de blocker
-        return self.game.get_closest_player_to_ball(team)
-
 
 class Block(Action):
-    def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+    def __init__(
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
+    ) -> None:
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
@@ -257,6 +293,14 @@ class Block(Action):
         blocking_skill = self.get_player_data().p_block
         self.success = random() <= (blocking_skill / 100)
 
+        if not self.success:
+            # Error en el bloqueo, punto para el oponente
+            opponent_team = T1 if self.team == T2 else T2
+            self.game.score_point(opponent_team)
+        else:
+            # Bloqueo exitoso
+            self.game.field.move_ball(self.src, self.dest)
+
     def reset(self):
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -267,14 +311,14 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
-        super().__init__(player, team, game)
+        super().__init__(src, dest, player, team, game)
         self.src = src
         self.dest = dest
 
@@ -287,7 +331,7 @@ class Move(Action):
 
 class Nothing(Action):
     def __init__(self, player: int, team: str, game: Game) -> None:
-        super().__init__(player, team, game)
+        super().__init__((0, 0), (0, 0), player, team, game)
 
     def execute(self):
         pass
@@ -299,7 +343,7 @@ class Nothing(Action):
 # Definición de la acción Substitution
 class Substitution(Action):
     def __init__(self, player_out: int, player_in: int, team: str, game: Game) -> None:
-        super().__init__(player_out, team, game)
+        super().__init__((0, 0), (0, 0), player_out, team, game)
         self.player_in = player_in
         self.player_out = player_out
 
@@ -349,7 +393,7 @@ class Substitution(Action):
 # Definición de la acción Timeout
 class Timeout(Action):
     def __init__(self, team: str, game: Game) -> None:
-        super().__init__(-1, team, game)
+        super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
         # Registrar el tiempo muerto
@@ -365,10 +409,23 @@ class Timeout(Action):
 # Definición de la acción ManagerNothing
 class ManagerNothing(Action):
     def __init__(self, team: str, game: Game) -> None:
-        super().__init__(-1, team, game)
+        super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
         # No hace nada
+        pass
+
+    def reset(self):
+        # No hay nada que revertir
+        pass
+
+
+class ManagerCelebrate(Action):
+    def __init__(self, team: str, game: Game) -> None:
+        super().__init__((0, 0), (0, 0), -1, team, game)
+
+    def execute(self):
+        # Celebrar el punto
         pass
 
     def reset(self):
@@ -388,27 +445,57 @@ class Dispatch:
         # Verificar si la acción desencadena otros eventos
         if isinstance(action, Serve):
             print(
-                action.team + " " + str(action.player) + " sirve " + ("satisfactorio" if action.success else "fallido"))
+                action.team
+                + " "
+                + str(action.player)
+                + " sirve "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.serve_trigger(action)
         elif isinstance(action, Receive):
-            print(action.team + " " + str(action.player) + " recibe " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " recibe "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.receive_trigger(action)
         elif isinstance(action, Set):
-            print(action.team + " " + str(action.player) + " coloca " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " coloca "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.set_trigger(action)
         elif isinstance(action, Attack):
             print(
-                action.team + " " + str(action.player) + " ataca " + ("satisfactorio" if action.success else "fallido"))
+                action.team
+                + " "
+                + str(action.player)
+                + " ataca "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.attack_trigger(action)
         elif isinstance(action, Block):
-            print(action.team + " " + str(action.player) + " bloquea " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " bloquea "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.block_trigger(action)
         elif isinstance(action, Dig):
-            print(action.team + " " + str(action.player) + " defiende " + (
-                "satisfactorio" if action.success else "fallido"))
+            print(
+                action.team
+                + " "
+                + str(action.player)
+                + " defiende "
+                + ("satisfactorio" if action.success else "fallido")
+            )
             self.dig_trigger(action)
         elif isinstance(action, Move):
             print(action.team + " " + str(action.player) + " se mueve")
@@ -425,12 +512,13 @@ class Dispatch:
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
+            pass
             # Saque exitoso, el oponente intenta recibir
-            opponent_team = T1 if action.team == T2 else T2
-            #self.game.move_ball((8, 4), (12, 4))
-            receiver_player = self.game.get_closest_player_to_ball(opponent_team)
-            receive_action = Receive(receiver_player, opponent_team, self.game)
-            self.dispatch(receive_action)
+            # opponent_team = T1 if action.team == T2 else T2
+            # self.game.move_ball((8, 4), (12, 4))
+            # receiver_player = self.game.get_closest_player_to_ball(opponent_team)
+            # receive_action = Receive(receiver_player, opponent_team, self.game)
+            # self.dispatch(receive_action)
 
     def receive_trigger(self, action: Receive):
         if not action.success:
@@ -438,11 +526,12 @@ class Dispatch:
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
+            pass
             # Recepción exitosa, proceder con la colocación
-            #TODO implementar seleccion de setter
-            setter_player = self.game.get_closest_player_to_ball(action.team)
-            set_action = Set(setter_player, action.team, self.game)
-            self.dispatch(set_action)
+            # TODO implementar seleccion de setter
+            # setter_player = self.game.get_closest_player_to_ball(action.team)
+            # set_action = Set(setter_player, action.team, self.game)
+            # self.dispatch(set_action)
 
     def set_trigger(self, action: Set):
         if not action.success:
@@ -450,11 +539,12 @@ class Dispatch:
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
+            pass
             # Colocación exitosa, proceder con el ataque
-            #TODO implementar seleccion de attacker
-            attacker_player = self.game.get_closest_player_to_ball(action.team)
-            attack_action = Attack(attacker_player, action.team, self.game)
-            self.dispatch(attack_action)
+            # TODO implementar seleccion de attacker
+            # attacker_player = self.game.get_closest_player_to_ball(action.team)
+            # attack_action = Attack(attacker_player, action.team, self.game)
+            # self.dispatch(attack_action)
 
     def attack_trigger(self, action: Attack):
         if not action.success:
@@ -462,21 +552,23 @@ class Dispatch:
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
+            pass
             # Ataque exitoso, el oponente intenta bloquear
-            opponent_team = T1 if action.team == T2 else T2
-            #TODO implementar seleccion de blocker
-            blocker_player = self.game.get_closest_player_to_ball(opponent_team)
-            block_action = Block(blocker_player, opponent_team, self.game)
-            self.dispatch(block_action)
+            # opponent_team = T1 if action.team == T2 else T2
+            # # TODO implementar seleccion de blocker
+            # blocker_player = self.game.get_closest_player_to_ball(opponent_team)
+            # block_action = Block(blocker_player, opponent_team, self.game)
+            # self.dispatch(block_action)
 
     def block_trigger(self, action: Block):
         if action.success:
             # Bloqueo exitoso, punto para el equipo bloqueador
             self.game.score_point(action.team)
         else:
+            pass
             # Bloqueo fallido, el equipo atacante gana el punto
-            opponent_team = T1 if action.team == T2 else T2
-            self.game.score_point(opponent_team)
+            # opponent_team = T1 if action.team == T2 else T2
+            # self.game.score_point(opponent_team)
 
     def dig_trigger(self, action: Dig):
         if not action.success:
@@ -485,7 +577,7 @@ class Dispatch:
             self.game.score_point(opponent_team)
         else:
             # Defensa exitosa, proceder con la colocación
-            #TODO implementar seleccion de setter
+            # TODO implementar seleccion de setter
             setter_player = self.game.get_closest_player_to_ball(action.team)
             set_action = Set(setter_player, action.team, self.game)
             self.dispatch(set_action)

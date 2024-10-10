@@ -1,7 +1,7 @@
 ﻿from abc import ABC
 from typing import Dict, Optional
 
-from Tools.enum import PlayerRole, dictT1,dictT2
+from Tools.enum import PlayerRole, dictT1, dictT2
 from Tools.player_data import PlayerData
 
 # Estrategias
@@ -11,21 +11,30 @@ NORMAL = "NORMAL"
 
 
 class LineUpGrid:
-    def __init__(self, row: int, col: int, position_number: int, player_role: str) -> None:
+    def __init__(
+        self, row: int, col: int, position_number: int, player_role: str
+    ) -> None:
         self.row: int = row  # Posición en la cancha (fila)
         self.col: int = col  # Posición en la cancha (columna)
-        self.player: Optional[int] = None  # Dorsal del jugador (None si no hay jugador asignado)
+        self.player: Optional[int] = (
+            None  # Dorsal del jugador (None si no hay jugador asignado)
+        )
         self.position_number: int = position_number  # Posición de rotación (1-6)
         self.conf: str = NORMAL  # Estrategia actual
         self.player_role: str = player_role  # Rol del jugador
 
     def conf_player(self, player: PlayerData):
-        in_role = player.position == self.player_role or self.player_role in player.roles
+        in_role = (
+            player.position == self.player_role or self.player_role in player.roles
+        )
         self._set_statistics(player, in_role)
         self.player = player.dorsal  # Asignar dorsal del jugador
 
     def set_statistics(self, player_data: PlayerData) -> None:
-        in_role = player_data.position == self.player_role or self.player_role in player_data.roles
+        in_role = (
+            player_data.position == self.player_role
+            or self.player_role in player_data.roles
+        )
         self._set_statistics(player_data, in_role)
 
     def _set_statistics(self, player_data: PlayerData, in_role: bool) -> None:
@@ -49,7 +58,9 @@ class LineUp(ABC):
             if position_number in self.line_up:
                 self.line_up[position_number].conf_player(player)
             else:
-                raise ValueError(f"Número de posición {position_number} no está en la alineación.")
+                raise ValueError(
+                    f"Número de posición {position_number} no está en la alineación."
+                )
 
     def get_player_position(self, player_dorsal: int) -> Optional[LineUpGrid]:
         for grid in self.line_up.values():
@@ -64,14 +75,24 @@ class LineUp(ABC):
     def rotate(self, team: str):
         # Rotar posiciones en sentido de las agujas del reloj según las reglas del voleibol
         position_numbers = [1, 2, 3, 4, 5, 6]
-        rotated_positions = position_numbers[-1:] + position_numbers[:-1]  # Mover el último al inicio
+        rotated_positions = (
+            position_numbers[-1:] + position_numbers[:-1]
+        )  # Mover el último al inicio
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):
             for grid in self.line_up.values():
                 if grid.position_number == old_pos_num:
                     grid.position_number = new_pos_num
-                    grid.col = dictT1[new_pos_num][1] if team == "T1" else dictT2[new_pos_num][1]
-                    grid.row = dictT1[new_pos_num][0] if team == "T1" else dictT2[new_pos_num][0]
+                    grid.col = (
+                        dictT1[new_pos_num][1]
+                        if team == "T1"
+                        else dictT2[new_pos_num][1]
+                    )
+                    grid.row = (
+                        dictT1[new_pos_num][0]
+                        if team == "T1"
+                        else dictT2[new_pos_num][0]
+                    )
                     temp_line_up[new_pos_num] = grid
                     break
         self.line_up = temp_line_up

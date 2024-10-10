@@ -1,8 +1,9 @@
 ﻿# simulator.py
 from typing import Generator, List, Set, Tuple
 
-from Agents.actions import Dispatch
-from Agents.manager_action_strategy import ActionMiniMaxStrategy, ActionSimulateStrategy
+from Agents.actions import Action, Dispatch
+from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
+                                            ActionSimulateStrategy)
 from Agents.manager_agent import Manager
 from Agents.simulator_agent import SimulatorAgent
 from Agents.team import TeamAgent
@@ -18,7 +19,7 @@ INTERVAL_MANAGER = 20  # Intervalo para decisiones del entrenador (sustituciones
 
 class VolleyballSimulation:
     def __init__(
-        self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
+            self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
     ) -> None:
 
         self.t1: TeamAgent = team1[0]
@@ -98,22 +99,31 @@ class Simulator:
         self.game.instance = 1
 
     def simulate_rally(
-        self,
-        mask: Set[Tuple[int, str]],
-        heuristic_manager: bool = False,
-        heuristic_player: bool = False,
+            self,
+            mask: Set[Tuple[int, str]],
+            heuristic_manager: bool = False,
+            heuristic_player: bool = False,
     ):
         self.stack.append(len(self.dispatch.stack))
 
         # Iniciar el rally en el juego
         self.game.start_rally()
 
+        # Simulation tick
         while not self.game.is_rally_over():
             current_team = self.game.ball_possession_team
-            # Obtener acción del jugador
-            action = self.get_next_action(current_team)
-            self.dispatch.dispatch(action)
-            # La acción y el dispatch actualizan el estado del juego
+            other_team = T1 if current_team == T2 else T2
+
+            c_team: [TeamData] = self.game.t1 if current_team == T1 else self.game.t2
+            o_team: [TeamData] = self.game.t2 if current_team == T1 else self.game.t1
+
+            for player in c_team.on_field:
+                self.dispatch.dispatch(
+                    self.get_next_player_actions(player, current_team)
+                )
+
+            for player in o_team.on_field:
+                self.dispatch.dispatch(self.get_next_player_actions(player, other_team))
 
         # Procesar el fin del rally
         self.game.handle_end_of_rally()
@@ -124,11 +134,18 @@ class Simulator:
         # Simular decisiones de los entrenadores
         self.simulate_managers(mask)
 
-    def get_next_action(self, team: str):
-        player_number = self.game.get_closest_player_to_ball(team)
-        sim = self.get_player_simulator(team, player_number, set())
-        action = self.get_player_action(team, player_number, sim)
-        return action
+    def get_next_actions(self, team: str) -> [Action]:
+        players = self.game.t1.on_field if team == T1 else self.game.t2.on_field
+        actions: [Action] = []
+        for player_number in players:
+            sim = self.get_player_simulator(team, player_number, set())
+            action = self.get_player_action(team, player_number, sim)
+            actions.append(action)
+        return actions
+
+    def get_next_player_actions(self, player: int, team: str) -> [Action]:
+        sim = self.get_player_simulator(team, player, set())
+        return self.get_player_action(team, player, sim)
 
     def get_next_player(self, team: str) -> int:
         if team == T1:
@@ -248,7 +265,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
 class SimulatorActionSimulatePlayer(SimulatorAgent):
     def __init__(
-        self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
+            self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
     ):
         super().__init__(simulator.game)
         self.team: str = team

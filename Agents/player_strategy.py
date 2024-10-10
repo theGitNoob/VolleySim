@@ -317,6 +317,7 @@ class RandomStrategy(BehaviorStrategy, PlayerStrategy):
         possible_actions: Callable[[Game], List[Action]],
         simulator: SimulatorAgent,
     ) -> Action:
+        # TODO: check if this is correct
         return self.select_action_behavior(possible_actions(simulator.game), simulator)
 
 

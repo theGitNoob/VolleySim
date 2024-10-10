@@ -15,7 +15,11 @@ class PlayerData:
         self.p_serve: int = self._set_int_value(df["p_Serve"])
         self.p_receive: int = self._set_int_value(df["p_Receive"])
         self.country: str = df["Team"]
-        self.dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else self._generate_dorsal()
+        self.dorsal: int = (
+            self._set_int_value(df["Dorsal"])
+            if "Dorsal" in df
+            else self._generate_dorsal()
+        )
 
         # Roles que puede desempeñar el jugador (si aplica)
         self.roles: List[str] = (
@@ -28,7 +32,6 @@ class PlayerData:
         # Valores originales (opcional)
         self.o_name: str = df["Name"]
         self.o_position: str = df["Position"]
-        self.o_height: int = self._set_int_value(df["Height"])
         self.o_p_attack: int = self._set_int_value(df["p_Attack"])
         self.o_p_block: int = self._set_int_value(df["p_Block"])
         self.o_p_dig: int = self._set_int_value(df["p_Dig"])
