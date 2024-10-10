@@ -80,7 +80,9 @@ def load_block_data(path: str, threshold: int = 10) -> None:
         tot_block = row["Tot_Block"]
 
         p_block = 0.0
-        if not (pd.isna(pt_block) or pd.isna(tot_block) or tot_block == 0 or pt_block == 0):
+        if not (
+            pd.isna(pt_block) or pd.isna(tot_block) or tot_block == 0 or pt_block == 0
+        ):
             p_block = (pt_block / tot_block) * 100.0
         if tot_block < threshold or p_block == 0.0:
             continue
@@ -124,7 +126,7 @@ def load_set_data(path: str, threshold: int = 10) -> None:
     df = pd.read_csv(path, sep=",", encoding="latin1")
     for _, row in df.iterrows():
         name = row["Name"]
-        att_set = row['Att_Set']
+        att_set = row["Att_Set"]
         tot_set = row["Tot_Set"]
         if tot_set < threshold:
             continue

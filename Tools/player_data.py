@@ -32,7 +32,6 @@ class PlayerData:
         # Valores originales (opcional)
         self.o_name: str = df["Name"]
         self.o_position: str = df["Position"]
-        self.o_height: int = self._set_int_value(df["Height"])
         self.o_p_attack: int = self._set_int_value(df["p_Attack"])
         self.o_p_block: int = self._set_int_value(df["p_Block"])
         self.o_p_dig: int = self._set_int_value(df["p_Dig"])

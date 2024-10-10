@@ -14,7 +14,8 @@ class Game:
     """
 
     def __init__(self, t1: TeamData, t2: TeamData, cant_instances: int):
-        self.last_team_touched = None
+        self.last_team_touched: str | None = None
+        self.last_player_touched: int | None = None
         self.instance = 0
         self.cant_instances: int = cant_instances
         self.field: Field = Field()
@@ -30,32 +31,29 @@ class Game:
         self.points_to_win_set = 25
         self.serving_team = T1
         self.touches = {T1: 0, T2: 0}
-        self.last_team_touched: str | None
         self.ball_possession_team = self.serving_team
         self.rally_over = False
         self.last_fault_team: Optional[str] = None  # Equipo que cometió una falta
 
-    def score_point(self, team: str):
-        if team == T1:
+    def score_point(self, scorer_team: str):
+        if scorer_team == T1:
             self.t1_score += 1
         else:
             self.t2_score += 1
 
         # Cambiar servicio si el equipo anotó es diferente al que servía
-        if self.serving_team != team:
-            self.serving_team = team
+        if self.serving_team != scorer_team:
+            self.serving_team = scorer_team
             # Rotar jugadores del equipo que ganó el servicio
-            if team == T1:
-                self.field.rotate_players(team, self.t1.line_up, self.t2.line_up)
+            if scorer_team == T1:
+                self.field.rotate_players(scorer_team, self.t1.line_up, self.t2.line_up)
             else:
-                self.field.rotate_players(team, self.t2.line_up, self.t1.line_up)
+                self.field.rotate_players(scorer_team, self.t2.line_up, self.t1.line_up)
 
         # Reiniciar toques y estados
         self.touches[T1] = 0
         self.touches[T2] = 0
         self.last_team_touched = None
-        # TODO: Check if var has sense
-        self.last_fault_team = None
 
         # Verificar si el set ha terminado
         if self.has_set_ended():

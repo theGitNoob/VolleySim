@@ -81,11 +81,11 @@ class Field:
             self.grid[self.net_row][c].is_net = True
 
     def conf_line_ups(
-        self, line_up_h: LineUp, line_up_a: LineUp, team: str | None = None
+        self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
     ):
         # Configurar alineaciones para el equipo de casa
         for pos_number, grid_info in line_up_h.line_up.items():
-            if pos_number == 1 and team == T1:
+            if pos_number == 1 and server_team == T1:
                 self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
@@ -94,7 +94,7 @@ class Field:
 
         # Configurar alineaciones para el equipo visitante
         for pos_number, grid_info in line_up_a.line_up.items():
-            if pos_number == 1 and team == T2:
+            if pos_number == 1 and server_team == T2:
                 self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
@@ -129,7 +129,7 @@ class Field:
             x_src > self.net_row >= x_dest
         )
         # Printear el campo actual
-        print(self)
+        # print(self)
 
         if ball_crossed_net:
             return "crossed_net"
@@ -167,7 +167,8 @@ class Field:
 
         # Mover jugador si la posición de destino está vacía
         if self.grid[x_dest][y_dest].player != -1:
-            raise Exception("La posición de destino ya está ocupada")
+            return
+            # raise Exception("La posición de destino ya está ocupada")
 
         # Actualizar posiciones
         self.grid[x_dest][y_dest].player = player_field.player
