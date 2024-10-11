@@ -41,11 +41,12 @@ class PlayerData:
         self.o_country: str = df["Team"]
         self.o_dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else -1
 
+    #Generar dorsal de tal forma que no existan 2 jugadores con el mismo dorsal aunque no sean del mismo equipo
     def _generate_dorsal(self):
-        # Generar un dorsal único basado en el hash del nombre
-        return abs(hash(self.name)) % 100  # Por ejemplo, un número entre 0 y 99
+        return abs(hash(f"{self.position}-{self.name}-{self.country}")) % 100
 
-    def _set_int_value(self, value):
+    @staticmethod
+    def _set_int_value(value):
         if value != value:  # Verifica si el valor es NaN
             return 10  # Valor por defecto si es NaN
         else:

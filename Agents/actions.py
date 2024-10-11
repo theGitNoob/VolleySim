@@ -11,12 +11,12 @@ from Tools.game import Game
 
 class Action(ABC):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__()
         self.src: Tuple[int, int] = src
@@ -54,12 +54,12 @@ class Action(ABC):
 
 class Receive(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -76,14 +76,21 @@ class Receive(Action):
 
         # Determinar si la recepción es exitosa
         receiving_skill = self.get_player_data().p_receive
-        self.success = random() <= (receiving_skill / 100)
+        self.success = random() <= receiving_skill
 
         if not self.success:
             # Error en la recepción, punto para el oponente
             opponent_team = T1 if self.team == T2 else T1
             self.game.score_point(opponent_team)
         else:
-            self.game.field.move_ball(self.src, self.dest)
+            ball_crossed_net = self.game.field.move_ball(self.src, self.dest)
+            if ball_crossed_net:
+                self.game.touches[self.team] = 0
+            else:
+                self.game.touches[self.team] += 1
+            self.game.general_touches += 1
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
 
     def reset(self):
         # Revertir resistencia
@@ -103,12 +110,12 @@ class Receive(Action):
 
 class Serve(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -134,6 +141,10 @@ class Serve(Action):
             self.game.score_point(opponent_team)
         else:
             self.game.field.move_ball(self.src, self.dest)
+            self.game.general_touches += 1
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
+            self.game.ball_possession_team = T1 if self.team == T2 else T2
 
     def reset(self):
         # Revertir resistencia
@@ -153,12 +164,12 @@ class Serve(Action):
 
 class Dig(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -172,14 +183,22 @@ class Dig(Action):
         player_stats.digs += 1
 
         digging_skill = self.get_player_data().p_dig
-        self.success = random() <= (digging_skill / 100)
+        self.success = random() <= digging_skill
 
         if not self.success:
             # Error en el dig, punto para el oponente
             opponent_team = T1 if self.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
-            self.game.move_ball(self.src, self.dest)
+            ball_crossed_net = self.game.move_ball(self.src, self.dest)
+            if ball_crossed_net:
+                self.game.touches[self.team] = 0
+                self.game.ball_possession_team = T1 if self.team == T2 else T2
+            else:
+                self.game.touches[self.team] += 1
+            self.game.general_touches += 1
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
 
     def reset(self):
 
@@ -197,12 +216,12 @@ class Dig(Action):
 
 class Set(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -222,6 +241,10 @@ class Set(Action):
 
         else:
             self.game.move_ball(self.src, self.dest)
+            self.game.general_touches += 1
+            self.game.touches[self.team] += 1
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
 
     def reset(self):
         team_stats = self.get_statistics()
@@ -233,14 +256,14 @@ class Set(Action):
 
 class Attack(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
-        super().__init__(player, team, game)
+        super().__init__(src, dest, player, team, game)
         self.success: bool = False
 
     def execute(self):
@@ -261,9 +284,13 @@ class Attack(Action):
         else:
             # El ataque es exitoso
             self.game.field.move_ball(self.src, self.dest)
+            self.game.general_touches += 1
+            self.game.touches[self.team] = 0
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
+            self.game.ball_possession_team = T1 if self.team == T2 else T2
 
     def reset(self):
-
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -273,12 +300,12 @@ class Attack(Action):
 
 class Block(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -300,6 +327,10 @@ class Block(Action):
         else:
             # Bloqueo exitoso
             self.game.field.move_ball(self.src, self.dest)
+            self.game.general_touches += 1
+            self.game.last_player_touched = self.player
+            self.game.last_team_touched = self.team
+            self.game.ball_possession_team = T1 if self.team == T2 else T2
 
     def reset(self):
         team_stats = self.get_statistics()
@@ -311,12 +342,12 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.src = src
@@ -576,11 +607,7 @@ class Dispatch:
             opponent_team = T1 if action.team == T2 else T2
             self.game.score_point(opponent_team)
         else:
-            # Defensa exitosa, proceder con la colocación
-            # TODO implementar seleccion de setter
-            setter_player = self.game.get_closest_player_to_ball(action.team)
-            set_action = Set(setter_player, action.team, self.game)
-            self.dispatch(set_action)
+            pass
 
     def reset(self):
         # Deshacer la última acción

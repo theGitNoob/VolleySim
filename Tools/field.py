@@ -81,8 +81,18 @@ class Field:
             self.grid[self.net_row][c].is_net = True
 
     def conf_line_ups(
-        self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
+            self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
     ):
+        for grid in self.grid:
+            for g in grid:
+                if g.row < 9:
+                    g.team = "T1"
+                elif g.row > 9:
+                    g.team = "T2"
+                g.player = -1
+                g.position = 0
+                g.ball = False
+
         # Configurar alineaciones para el equipo de casa
         for pos_number, grid_info in line_up_h.line_up.items():
             if pos_number == 1 and server_team == T1:
@@ -113,7 +123,7 @@ class Field:
                     return grid
         return None
 
-    def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> str:
+    def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> bool:
         x_src, y_src = src
         x_dest, y_dest = dest
 
@@ -126,15 +136,13 @@ class Field:
 
         # Detectar si la pelota cruzó la red
         ball_crossed_net = (x_src < self.net_row <= x_dest) or (
-            x_src > self.net_row >= x_dest
+                x_src > self.net_row >= x_dest
         )
-        # Printear el campo actual
-        # print(self)
 
         if ball_crossed_net:
-            return "crossed_net"
+            return True
         else:
-            return "normal"
+            return False
 
     def rotate_players(self, team: str, line_up_to_rotate: LineUp, line_up: LineUp):
         # Rotar las posiciones en el line-up

@@ -29,13 +29,15 @@ class Game:
         self.max_sets = 5
         self.sets_to_win = 3
         self.points_to_win_set = 25
-        self.serving_team = T1
+        self.serving_team = T2
         self.touches = {T1: 0, T2: 0}
+        self.general_touches = 0
         self.ball_possession_team = self.serving_team
         self.rally_over = False
         self.last_fault_team: Optional[str] = None  # Equipo que cometió una falta
 
     def score_point(self, scorer_team: str):
+        self.ball_possession_team = scorer_team
         if scorer_team == T1:
             self.t1_score += 1
         else:
@@ -53,6 +55,7 @@ class Game:
         # Reiniciar toques y estados
         self.touches[T1] = 0
         self.touches[T2] = 0
+        self.general_touches = 0
         self.last_team_touched = None
 
         # Verificar si el set ha terminado
@@ -60,7 +63,7 @@ class Game:
             self.end_set()
         else:
             # Reposicionar jugadores para el siguiente punto
-            self.field.conf_line_ups(self.t1.line_up, self.t2.line_up)
+            self.field.conf_line_ups(self.t1.line_up, self.t2.line_up, self.serving_team)
 
     def has_set_ended(self) -> bool:
         if (
@@ -128,7 +131,7 @@ class Game:
     def conf_line_ups(self, line_up_h: LineUp, line_up_a: LineUp):
         self.t1.line_up = line_up_h
         self.t2.line_up = line_up_a
-        self.field.conf_line_ups(line_up_h, line_up_a)
+        self.field.conf_line_ups(line_up_h, line_up_a, self.serving_team)
 
         self.t1.on_field = set([p.player for p in line_up_h.line_up.values()])
         self.t2.on_field = set([p.player for p in line_up_a.line_up.values()])
@@ -194,9 +197,9 @@ class Game:
         """
         ball_grid = self.field.find_ball()
         if team == T1:
-            return ball_grid.row >= self.field.net_row
-        else:
             return ball_grid.row < self.field.net_row
+        else:
+            return ball_grid.row > self.field.net_row
 
     def is_ball_coming_to_player(self, dorsal: int, team: str) -> bool:
         # Lógica simplificada para determinar si la pelota viene hacia el jugador
@@ -206,12 +209,11 @@ class Game:
             self.field.int_distance(
                 (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
             )
-            <= 1
+            <= 2
         )
 
-    def is_opponent_attacking(self) -> bool:
-        # Lógica simplificada para determinar si el oponente está atacando
-        return self.last_team_touched != self.serving_team
+    def is_opponent_attacking(self, team: str) -> bool:
+        return self.last_team_touched != team
 
     def ball_in_opponent_court(self) -> bool:
         ball_grid = self.field.find_ball()
@@ -255,32 +257,13 @@ class Game:
         winning_team = self.determine_point_winner()
         self.score_point(winning_team)
 
-    def register_touch(self, team: str):
-        self.touches[team] += 1
-        self.last_team_touched = team
-
-        if self.touches[team] > 3:
-            # Excedió los 3 toques
-            self.register_fault(team)
-
     def register_fault(self, team: str):
         self.last_fault_team = team
         self.rally_over = True
 
-    def ball_crossed_net(self):
-        # Reiniciar toques al cruzar la red
-        self.touches[T1] = 0
-        self.touches[T2] = 0
-        # Cambiar posesión de la pelota
-        self.ball_possession_team = T1 if self.ball_possession_team == T2 else T2
-
     def ball_landed(self, team: str):
         # La pelota cayó al suelo
         self.register_fault(team)
-
-    def player_contact_ball(self, player_id: int, team: str):
-        # Llamar cuando un jugador toca la pelota
-        self.register_touch(team)
 
     def determine_point_winner(self) -> str:
         # Lógica para determinar el ganador del punto
@@ -313,5 +296,5 @@ class Game:
                 closest_player = player_id
         return closest_player
 
-    def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> str:
+    def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> bool:
         return self.field.move_ball(src, dest)
