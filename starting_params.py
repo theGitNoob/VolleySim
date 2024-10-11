@@ -11,7 +11,7 @@ class StartingParams:
 
 
 # Nombres de equipos de voleibol (puedes reemplazarlos por los que prefieras)
-team_names = ("CUB", "ARG")
+team_names = ("ARG", "ARG")
 
 # Configuraciones de inicio para diferentes escenarios de simulación
 all_random = StartingParams(

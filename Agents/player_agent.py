@@ -71,11 +71,11 @@ class Player:
         ball_src = game.field.find_ball()
         ball_src = (ball_src.row, ball_src.col)
 
-        if game.last_player_touched == self.dorsal:
+        if game.last_player_touched == self.dorsal and game.general_touches != 0:
             return actions
 
         # Si es nuestro saque solo agregamos la acción de saque al jugador que tiene el saque
-        if game.is_our_serve(self.team):
+        if game.is_our_serve(self.team) and game.general_touches == 0:
             if game.is_player_server(self.dorsal):
                 actions.pop()
                 for grid in self.enemy_grids(visible_grids):
@@ -96,6 +96,17 @@ class Player:
                                 game,
                             )
                         )
+                    if 5 < game.field.find_player(self.dorsal, self.team).row < 13:
+                        for grid in self.enemy_grids(visible_grids):
+                            actions.append(
+                                Block(
+                                    ball_src,
+                                    (grid.row, grid.col),
+                                    self.dorsal,
+                                    self.team,
+                                    game,
+                                )
+                            )
                 elif game.touches[self.team] == 1:
                     for grid in self.friendly_grids(visible_grids):
                         actions.append(
@@ -129,18 +140,7 @@ class Player:
                                 game,
                             )
                         )
-
-                elif game.touches[self.team] == 0:
-                    for grid in self.enemy_grids(visible_grids):
-                        actions.append(
-                            Block(
-                                ball_src,
-                                (grid.row, grid.col),
-                                self.dorsal,
-                                self.team,
-                                game,
-                            )
-                        )
+                    
             else:
                 # El jugador puede moverse dentro de la cancha
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
@@ -150,20 +150,21 @@ class Player:
                             (p_grid.row, p_grid.col), dest, self.dorsal, self.team, game
                         )
                     )
-        else:
-            # La pelota está en el lado del oponente o viene un ataque
-            if game.is_opponent_attacking():
-                # El jugador puede bloquear
-                # TODO: Chequear que el jugador que vaya a bloquear no esté zaguero
-                for grid in self.enemy_grids(visible_grids):
-                    dest = (grid.row, grid.col)
-                    actions.append(Block(ball_src, dest, self.dorsal, self.team, game))
-                    actions.append(
-                        Receive(ball_src, dest, self.dorsal, self.team, game)
-                    )
-            else:
-                for grid in self.empty_adjacent_grids(visible_grids, p_grid):
-                    dest = (grid.row, grid.col)
-                    actions.append(Move(ball_src, dest, self.dorsal, self.team, game))
+        # else:
+        #     # La pelota está en el lado del oponente o viene un ataque
+        #     if game.is_opponent_attacking(self.team):
+        #         # El jugador puede bloquear
+        #         # TODO: Chequear que el jugador que vaya a bloquear no esté zaguero
+        #         for grid in self.friendly_grids(visible_grids):
+        #             dest = (grid.row, grid.col)
+        #             if game.is_ball_coming_to_player(self.dorsal, self.team):
+        #                 actions.append(Block(ball_src, dest, self.dorsal, self.team, game))
+        #                 actions.append(
+        #                     Receive(ball_src, dest, self.dorsal, self.team, game)
+        #                 )
+        #     else:
+        #         for grid in self.empty_adjacent_grids(visible_grids, p_grid):
+        #             dest = (grid.row, grid.col)
+        #             actions.append(Move(ball_src, dest, self.dorsal, self.team, game))
 
         return actions

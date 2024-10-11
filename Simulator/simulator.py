@@ -1,4 +1,5 @@
 ﻿# simulator.py
+import time
 from typing import Generator, List, Set, Tuple
 
 from Agents.actions import Action, Dispatch
@@ -92,8 +93,18 @@ class Simulator:
         # Determinar equipo que sirve primero
         if coin_toss():
             self.game.serving_team = T1
+            self.game.ball_possession_team = T1
+            ball_position = self.game.field.find_ball()
+            ball_position = (ball_position.row, ball_position.col)
+            print("Sirve T1")
+            self.game.field.move_ball(ball_position, (1, 1))
         else:
             self.game.serving_team = T2
+            self.game.ball_possession_team = T2
+            ball_position = self.game.field.find_ball()
+            ball_position = (ball_position.row, ball_position.col)
+            print("Sirve T2")
+            self.game.field.move_ball(ball_position, (17, 1))
 
         self.game.start_rally()
         self.game.instance = 1
@@ -117,13 +128,28 @@ class Simulator:
             c_team: [TeamData] = self.game.t1 if current_team == T1 else self.game.t2
             o_team: [TeamData] = self.game.t2 if current_team == T1 else self.game.t1
 
-            for player in c_team.on_field:
-                self.dispatch.dispatch(
-                    self.get_next_player_actions(player, current_team)
-                )
+            nothing_count = 0
 
+            for player in c_team.on_field:
+                player_action = self.get_next_player_actions(player, current_team)
+                self.dispatch.dispatch(player_action)
+                if player_action.__class__.__name__ == "Nothing" or player_action.__class__.__name__ == "Move":
+                    nothing_count += 1
+            if nothing_count == 6 and self.game.ball_possession_team == current_team:
+                self.game.score_point(other_team)
+                return
+
+            print(str(self.game.field))
+            nothing_count = 0
             for player in o_team.on_field:
-                self.dispatch.dispatch(self.get_next_player_actions(player, other_team))
+                player_action = self.get_next_player_actions(player, other_team)
+                self.dispatch.dispatch(player_action)
+                if player_action.__class__.__name__ == "Nothing" or player_action.__class__.__name__ == "Move":
+                    nothing_count += 1
+            if nothing_count == 6 and self.game.ball_possession_team == other_team:
+                self.game.score_point(current_team)
+                return
+            print(str(self.game.field))
 
         # Procesar el fin del rally
         self.game.handle_end_of_rally()
