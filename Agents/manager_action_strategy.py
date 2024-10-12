@@ -103,7 +103,7 @@ class ActionSimulateStrategy(ManagerActionStrategy):
                 simulator.reset()
                 simulator.reset_current()
                 while len(simulator.dispatch().stack) != len_stack:
-                    simulator.dispatch().reset()
+                    simulator.dispatch().rollback()
 
         # Elegir la acción con el mayor valor acumulado
         best_action_index = max(results, key=results.get)
@@ -155,9 +155,9 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
                 max_eval = eval
                 best_action = action
 
-            simulator.dispatch().reset()
+            simulator.dispatch().rollback()
             while len(simulator.dispatch().stack) != len_stack:
-                simulator.dispatch().reset()
+                simulator.dispatch().rollback()
 
             alpha = max(alpha, eval)
             if beta <= alpha:
@@ -194,9 +194,9 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
                 min_eval = eval
                 best_action = action
 
-            simulator.dispatch().reset()
+            simulator.dispatch().rollback()
             while len(simulator.dispatch().stack) != len_stack:
-                simulator.dispatch().reset()
+                simulator.dispatch().rollback()
 
             beta = min(beta, eval)
             if beta <= alpha:

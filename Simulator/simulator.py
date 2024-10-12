@@ -1,8 +1,9 @@
 ﻿# simulator.py
-import time
 from typing import Generator, List, Set, Tuple
 
-from Agents.actions import Action, Dispatch
+from prettytable import PrettyTable
+
+from Agents.actions import Action, Dispatch, Move, Nothing
 from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
                                             ActionSimulateStrategy)
 from Agents.manager_agent import Manager
@@ -20,7 +21,7 @@ INTERVAL_MANAGER = 20  # Intervalo para decisiones del entrenador (sustituciones
 
 class VolleyballSimulation:
     def __init__(
-            self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
+        self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
     ) -> None:
 
         self.t1: TeamAgent = team1[0]
@@ -32,44 +33,41 @@ class VolleyballSimulation:
         simulator.start_match()
 
         field_str = str(self.game.field)
-        statistics = self.game_statistics(
-            self.game.instance - 1, self.game.cant_instances
-        )
+        statistics = self.game_statistics()
+
         yield field_str + "\n" + statistics
 
         while not self.game.is_finish():
-            simulator.simulate_rally(set())
+            simulator.simulate_rally()
             field_str = str(self.game.field)
-            statistics = self.game_statistics(
-                self.game.instance - 1, self.game.cant_instances
-            )
+            statistics = self.game_statistics()
             yield field_str + "\n" + statistics
+            # sleep(1)
 
     def simulate_and_save(self):
         simulator = Simulator(self.t1, self.t2, self.game)
         simulator.start_match()
 
         while not self.game.is_finish():
-            simulator.simulate_rally(set())
+            simulator.simulate_rally()
 
         return simulator.game.to_json()
 
-    def game_statistics(self, instance: int, total_rallies: int) -> str:
-        nh = f"\033[34m{self.t1.name}\033[0m"
-        na = f"\033[31m{self.t2.name}\033[0m"
+    def game_statistics(self) -> str:
+
+        nh = self.t1.name
+        na = self.t2.name
+
         sh = self.game.t1_sets
         sa = self.game.t2_sets
         ph = self.game.t1_score
         pa = self.game.t2_score
-        current_set = self.game.current_set
 
-        len_s = len(nh) + len(na) - 18
-        return f"""
-Set {current_set} - Rally {instance}/{total_rallies}
-{nh}{' ' * (52 - len_s)}{na}
-Sets Ganados: {sh}{' ' * 40}{sa}
-Puntos en Set Actual: {ph}{' ' * 40}{pa}
-"""
+        table = PrettyTable()
+        table.field_names = ["Team", "Sets Ganados", "Puntos en Set Actual"]
+        table.add_row([nh, sh, ph])
+        table.add_row([na, sa, pa])
+        return table.get_string()
 
 
 class Simulator:
@@ -110,68 +108,80 @@ class Simulator:
         self.game.instance = 1
 
     def simulate_rally(
-            self,
-            mask: Set[Tuple[int, str]],
-            heuristic_manager: bool = False,
-            heuristic_player: bool = False,
+        self,
     ):
         self.stack.append(len(self.dispatch.stack))
 
-        # Iniciar el rally en el juego
-        self.game.start_rally()
+        self.game.has_ball_landed = True
+        self.game.rally_over = False
 
-        # Simulation tick
-        while not self.game.is_rally_over():
-            current_team = self.game.ball_possession_team
-            other_team = T1 if current_team == T2 else T2
+        current_team = self.game.ball_possession_team
+        other_team = T1 if current_team == T2 else T2
 
-            c_team: [TeamData] = self.game.t1 if current_team == T1 else self.game.t2
-            o_team: [TeamData] = self.game.t2 if current_team == T1 else self.game.t1
+        c_team: [TeamData] = self.game.t1 if current_team == T1 else self.game.t2
+        o_team: [TeamData] = self.game.t2 if current_team == T1 else self.game.t1
 
-            nothing_count = 0
+        current_team_actions = []
+        other_team_actions = []
+        ball_touched = False
+        for player in c_team.on_field:
+            player_action = self.get_next_player_actions(player, current_team)
+            current_team_actions.append(player_action)
 
-            for player in c_team.on_field:
-                player_action = self.get_next_player_actions(player, current_team)
-                self.dispatch.dispatch(player_action)
-                if player_action.__class__.__name__ == "Nothing" or player_action.__class__.__name__ == "Move":
-                    nothing_count += 1
-            if nothing_count == 6 and self.game.ball_possession_team == current_team:
-                self.game.score_point(other_team)
-                return
+        for player in o_team.on_field:
+            player_action = self.get_next_player_actions(player, other_team)
+            other_team_actions.append(player_action)
 
-            print(str(self.game.field))
-            nothing_count = 0
-            for player in o_team.on_field:
-                player_action = self.get_next_player_actions(player, other_team)
-                self.dispatch.dispatch(player_action)
-                if player_action.__class__.__name__ == "Nothing" or player_action.__class__.__name__ == "Move":
-                    nothing_count += 1
-            if nothing_count == 6 and self.game.ball_possession_team == other_team:
-                self.game.score_point(current_team)
-                return
-            print(str(self.game.field))
+        for action in current_team_actions:
+            if ball_touched and not isinstance(action, Move):
+                action = Nothing(action.player, action.team, self.game)
 
-        # Procesar el fin del rally
-        self.game.handle_end_of_rally()
+            self.dispatch.dispatch(action)
+            if action.__class__.__name__ in (
+                "Serve",
+                "Attack",
+                "Block",
+                "Receive",
+                "Dig",
+                "Set",
+            ):
+                ball_touched = True
+
+        for action in other_team_actions:
+            if ball_touched and not isinstance(action, Move):
+                action = Nothing(action.player, action.team, self.game)
+
+            self.dispatch.dispatch(action)
+            if action.__class__.__name__ in (
+                "Serve",
+                "Attack",
+                "Block",
+                "Receive",
+                "Dig",
+                "Set",
+            ):
+                ball_touched = True
+
+        # chequear si hubo punto o la pelota tocó el suelo
+        if self.game.has_ball_landed:
+            ball_position = self.game.field.find_ball()
+            scorer_team = T1 if ball_position.team == T2 else T2
+            self.game.score_point(scorer_team)
+        elif self.game.rally_over:
+            self.game.score_point(self.game.last_team_touched)
 
         # Incrementar el contador de instancias (rallies)
         self.game.instance += 1
 
         # Simular decisiones de los entrenadores
-        self.simulate_managers(mask)
-
-    def get_next_actions(self, team: str) -> [Action]:
-        players = self.game.t1.on_field if team == T1 else self.game.t2.on_field
-        actions: [Action] = []
-        for player_number in players:
-            sim = self.get_player_simulator(team, player_number, set())
-            action = self.get_player_action(team, player_number, sim)
-            actions.append(action)
-        return actions
+        # self.simulate_managers(mask)
 
     def get_next_player_actions(self, player: int, team: str) -> [Action]:
         sim = self.get_player_simulator(team, player, set())
         return self.get_player_action(team, player, sim)
+
+    def get_next_team_actions(self, team) -> [Action]:
+        raise NotImplementedError
 
     def get_next_player(self, team: str) -> int:
         if team == T1:
@@ -216,9 +226,9 @@ class Simulator:
             self.reset_instance()
 
     def reset_instance(self):
-        self.dispatch.reset()
+        self.dispatch.rollback()
         while len(self.dispatch.stack) != self.stack[-1]:
-            self.dispatch.reset()
+            self.dispatch.rollback()
         self.stack.pop()
 
 
@@ -283,7 +293,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
     def reset_current(self):
         while len(self.simulator.dispatch.stack) != self.stack_len:
-            self.simulator.dispatch.reset()
+            self.simulator.dispatch.rollback()
 
     def dispatch(self) -> Dispatch:
         return self.simulator.dispatch
@@ -291,7 +301,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
 class SimulatorActionSimulatePlayer(SimulatorAgent):
     def __init__(
-            self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
+        self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
     ):
         super().__init__(simulator.game)
         self.team: str = team
@@ -312,7 +322,7 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
 
     def reset_current(self):
         while len(self.simulator.dispatch.stack) != self.stack_len:
-            self.simulator.dispatch.reset()
+            self.simulator.dispatch.rollback()
 
     def dispatch(self) -> Dispatch:
         return self.simulator.dispatch

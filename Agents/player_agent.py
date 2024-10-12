@@ -81,6 +81,14 @@ class Player:
                 for grid in self.enemy_grids(visible_grids):
                     dest = (grid.row, grid.col)
                     actions.append(Serve(ball_src, dest, self.dorsal, self.team, game))
+            else:
+                for grid in self.empty_adjacent_grids(visible_grids, p_grid):
+                    dest = (grid.row, grid.col)
+                    actions.append(
+                        Move(
+                            (p_grid.row, p_grid.col), dest, self.dorsal, self.team, game
+                        )
+                    )
 
         # La pelota está en nuestro lado
         elif game.is_ball_on_our_side(self.team):
@@ -140,7 +148,7 @@ class Player:
                                 game,
                             )
                         )
-                    
+
             else:
                 # El jugador puede moverse dentro de la cancha
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
@@ -150,21 +158,5 @@ class Player:
                             (p_grid.row, p_grid.col), dest, self.dorsal, self.team, game
                         )
                     )
-        # else:
-        #     # La pelota está en el lado del oponente o viene un ataque
-        #     if game.is_opponent_attacking(self.team):
-        #         # El jugador puede bloquear
-        #         # TODO: Chequear que el jugador que vaya a bloquear no esté zaguero
-        #         for grid in self.friendly_grids(visible_grids):
-        #             dest = (grid.row, grid.col)
-        #             if game.is_ball_coming_to_player(self.dorsal, self.team):
-        #                 actions.append(Block(ball_src, dest, self.dorsal, self.team, game))
-        #                 actions.append(
-        #                     Receive(ball_src, dest, self.dorsal, self.team, game)
-        #                 )
-        #     else:
-        #         for grid in self.empty_adjacent_grids(visible_grids, p_grid):
-        #             dest = (grid.row, grid.col)
-        #             actions.append(Move(ball_src, dest, self.dorsal, self.team, game))
 
         return actions

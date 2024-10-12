@@ -1,5 +1,4 @@
-import time
-from typing import Optional, Tuple
+from typing import Tuple
 
 from Tools.data import TeamData
 from Tools.enum import T1, T2
@@ -34,10 +33,11 @@ class Game:
         self.general_touches = 0
         self.ball_possession_team = self.serving_team
         self.rally_over = False
-        self.last_fault_team: Optional[str] = None  # Equipo que cometió una falta
+        self.has_ball_landed = False
 
     def score_point(self, scorer_team: str):
         self.ball_possession_team = scorer_team
+
         if scorer_team == T1:
             self.t1_score += 1
         else:
@@ -63,7 +63,9 @@ class Game:
             self.end_set()
         else:
             # Reposicionar jugadores para el siguiente punto
-            self.field.conf_line_ups(self.t1.line_up, self.t2.line_up, self.serving_team)
+            self.field.conf_line_ups(
+                self.t1.line_up, self.t2.line_up, self.serving_team
+            )
 
     def has_set_ended(self) -> bool:
         if (
@@ -87,8 +89,6 @@ class Game:
         if self.t1_sets == self.sets_to_win or self.t2_sets == self.sets_to_win:
             self.end_match()
         else:
-            print(self.field)
-            time.sleep(20)
             self.field.reset()
             if self.current_set == 5:
                 self.serving_team = T1 if coin_toss() else T2
@@ -153,15 +153,8 @@ class Game:
     def is_start(self) -> bool:
         return self.instance == 0
 
-    def is_middle(self) -> bool:
-        return self.instance == self.cant_instances // 2 + 1
-
     def is_finish(self) -> bool:
-        return (
-            self.instance >= self.cant_instances + 1
-            or self.t1_sets > self.max_sets // 2
-            or self.t2_sets > self.max_sets // 2
-        )
+        return self.t1_sets == self.sets_to_win or self.t2_sets == self.sets_to_win
 
     def to_json(self):
         return {
@@ -248,22 +241,9 @@ class Game:
         # La posesión de la pelota comienza con el equipo que sirve
         self.ball_possession_team = self.serving_team
         self.rally_over = False
-        self.last_fault_team = None
 
     def is_rally_over(self) -> bool:
         return self.rally_over
-
-    def handle_end_of_rally(self):
-        winning_team = self.determine_point_winner()
-        self.score_point(winning_team)
-
-    def register_fault(self, team: str):
-        self.last_fault_team = team
-        self.rally_over = True
-
-    def ball_landed(self, team: str):
-        # La pelota cayó al suelo
-        self.register_fault(team)
 
     def determine_point_winner(self) -> str:
         # Lógica para determinar el ganador del punto

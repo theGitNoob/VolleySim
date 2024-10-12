@@ -318,7 +318,9 @@ class RandomStrategy(BehaviorStrategy, PlayerStrategy):
         simulator: SimulatorAgent,
     ) -> Action:
         # TODO: check if this is correct
-        return self.select_action_behavior(possible_actions(simulator.game), simulator)
+        # return a random action in all the possible actions
+        return choice(possible_actions(simulator.game))
+        # return self.select_action_behavior(possible_actions(simulator.game), simulator)
 
 
 MIN = -10000000000
@@ -399,7 +401,7 @@ class MinimaxStrategy(PlayerStrategy):
                     simulator.reset()
 
             while len(simulator.dispatch().stack) != len_stack:
-                simulator.dispatch().reset()
+                simulator.dispatch().rollback()
 
         return best, best_action
 
