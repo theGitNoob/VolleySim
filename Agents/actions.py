@@ -11,12 +11,12 @@ from Tools.game import Game
 
 class Action(ABC):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__()
         self.src: Tuple[int, int] = src
@@ -54,12 +54,12 @@ class Action(ABC):
 
 class Receive(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -92,12 +92,12 @@ class Receive(Action):
 
 class Serve(Action):
     def __init__(
-            self,
-            src: tuple[int, int],
-            dest: tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -133,12 +133,12 @@ class Serve(Action):
 
 class Dig(Action):
     def __init__(
-            self,
-            src: tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -168,12 +168,12 @@ class Dig(Action):
 
 class Set(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -197,12 +197,12 @@ class Set(Action):
 
 class Attack(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -227,12 +227,12 @@ class Attack(Action):
 
 class Block(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -257,12 +257,12 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.src = src

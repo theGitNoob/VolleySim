@@ -29,19 +29,7 @@ class PlayerData:
         # Calificación general del jugador
         self.overall: int = self.calculate_overall()
 
-        # Valores originales (opcional)
-        self.o_name: str = df["Name"]
-        self.o_position: str = df["Position"]
-        self.o_p_attack: int = self._set_int_value(df["p_Attack"])
-        self.o_p_block: int = self._set_int_value(df["p_Block"])
-        self.o_p_dig: int = self._set_int_value(df["p_Dig"])
-        self.o_p_set: int = self._set_int_value(df["p_Set"])
-        self.o_p_serve: int = self._set_int_value(df["p_Serve"])
-        self.o_p_receive: int = self._set_int_value(df["p_Receive"])
-        self.o_country: str = df["Team"]
-        self.o_dorsal: int = self._set_int_value(df["Dorsal"]) if "Dorsal" in df else -1
-
-    #Generar dorsal de tal forma que no existan 2 jugadores con el mismo dorsal aunque no sean del mismo equipo
+    # Generar dorsal de tal forma que no existan 2 jugadores con el mismo dorsal aunque no sean del mismo equipo
     def _generate_dorsal(self):
         return abs(hash(f"{self.position}-{self.name}-{self.country}")) % 100
 
