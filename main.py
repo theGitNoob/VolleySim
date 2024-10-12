@@ -1,4 +1,5 @@
 import os
+import time
 
 import pandas as pd
 
@@ -6,7 +7,8 @@ from Simulator.build_data import conf_game
 from starting_params import all_random
 
 df = pd.read_csv("data/VNL2024Men.csv")
-df.loc[:, df.columns.str.startswith("p_")] = 50
+# df.loc[:, df.columns.str.startswith("p_")] = 50
+df['Dorsal'] = range(1, len(df) + 1)
 
 # params = conf_game_llm(input(
 #     """
@@ -51,6 +53,6 @@ def clear_console():
 
 
 for s in sim.simulate():
-    # time.sleep(0.5)
+    time.sleep(0.5)
     clear_console()
     print(s)
