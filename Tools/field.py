@@ -81,7 +81,7 @@ class Field:
             self.grid[self.net_row][c].is_net = True
 
     def conf_line_ups(
-            self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
+        self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
     ):
         for grid in self.grid:
             for g in grid:
@@ -136,7 +136,7 @@ class Field:
 
         # Detectar si la pelota cruzó la red
         ball_crossed_net = (x_src < self.net_row <= x_dest) or (
-                x_src > self.net_row >= x_dest
+            x_src > self.net_row >= x_dest
         )
 
         if ball_crossed_net:
@@ -184,8 +184,6 @@ class Field:
         self.grid[x_dest][y_dest].position = player_field.position
 
         self.grid[x_src][y_src].player = -1
-        self.grid[x_src][y_src].team = ""
-        self.grid[x_src][y_src].position = 0
 
     def is_valid_grid(self, grid: Tuple[int, int]) -> bool:
         x, y = grid
@@ -230,18 +228,15 @@ class Field:
         return grids
 
     def __str__(self) -> str:
-        field_str = ""
+        field_str = "   " + "|".join(f"{c + 1:02}" for c in range(self.columns)) + "\n"
+        field_str += "_" * (self.columns * 3 + 6) + "\n"
         for r in range(self.rows):
+            # Add row headers
+            field_str += f"{r + 1:02}|"
             for c in range(self.columns):
                 grid = self.grid[r][c]
                 field_str += str(grid) + " "
-            field_str += "\n"
-        return field_str
-
-    def str_code(self) -> str:
-        field_str = ""
-        for r in range(self.rows):
-            for c in range(self.columns):
-                field_str += self.grid[r][c].str_code() + " "
-            field_str += "\n"
+            field_str += f"|{r + 1:02}\n"
+        field_str += "_" * (self.columns * 3 + 6) + "\n"
+        field_str += "   " + "|".join(f"{c + 1:02}" for c in range(self.columns)) + "\n"
         return field_str
