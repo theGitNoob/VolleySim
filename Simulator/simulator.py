@@ -3,7 +3,7 @@ from typing import Generator, List, Set, Tuple
 
 from prettytable import PrettyTable
 
-from Agents.actions import Action, Dispatch, Move, Nothing
+from Agents.actions import Dispatch, Move, Nothing
 from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
                                             ActionSimulateStrategy)
 from Agents.manager_agent import Manager
@@ -16,7 +16,7 @@ from Tools.utils import coin_toss
 
 # Ajuste de constantes para el voleibol
 CANT_RALLIES = 180  # Número máximo de rallies a simular
-INTERVAL_MANAGER = 20  # Intervalo para decisiones del entrenador (sustituciones, tiempos muertos, etc.)
+INTERVAL_MANAGER = 1  # Intervalo para decisiones del entrenador (sustituciones, tiempos muertos, etc.)
 
 
 class VolleyballSimulation:
@@ -195,30 +195,17 @@ class Simulator:
         if self.game.has_ball_landed:
             ball_position = self.game.field.find_ball()
             scorer_team = T1 if ball_position.team == T2 else T2
+            # self.simulate_managers(mask)
             self.game.score_point(scorer_team)
         elif self.game.rally_over:
+            # self.simulate_managers(mask)
             self.game.score_point(self.game.last_team_touched)
 
         # Incrementar el contador de instancias (rallies)
         self.game.instance += 1
 
         # Simular decisiones de los entrenadores
-        self.simulate_managers(set())
-
-    def get_next_player_actions(
-            self, player: int, team: str, mask: Set[Tuple[int, str]]
-    ) -> [Action]:
-        sim = self.get_player_simulator(team, player, mask)
-        return self.get_player_action(team, player, sim)
-
-    def get_next_team_actions(self, team) -> [Action]:
-        raise NotImplementedError
-
-    def get_next_player(self, team: str) -> int:
-        if team == T1:
-            return self.team1.select_next_player()
-        else:
-            return self.team2.select_next_player()
+        self.simulate_managers(mask)
 
     def get_player_action(self, team: str, player_number: int, sim: SimulatorAgent):
         # Obtener la acción que el jugador realizará
@@ -232,13 +219,13 @@ class Simulator:
             if (T1, "manager") not in mask:
                 mask.add((T1, "manager"))
                 sim = self.get_simulator(self.team1.manager, T1, mask)
-                action = self.team1.play(sim)
+                action = self.team1.manager.action(sim)
                 self.dispatch.dispatch(action)
 
             if (T2, "manager") not in mask:
                 mask.add((T2, "manager"))
                 sim = self.get_simulator(self.team2.manager, T2, mask)
-                action = self.team2.play(sim)
+                action = self.team2.manager.play(sim)
                 self.dispatch.dispatch(action)
 
     def get_simulator(self, manager: Manager, team: str, mask: Set[Tuple[int, str]]):
@@ -246,8 +233,7 @@ class Simulator:
             return SimulatorActionSimulateManager(self, team, mask)
         elif isinstance(manager.action_strategy, ActionMiniMaxStrategy):
             return SimulatorActionMiniMaxManager(self, team, mask)
-        else:
-            return SimulatorRandom(self.game)
+        return SimulatorRandom(self.game)
 
     def get_player_simulator(self, team: str, player: int, mask: Set[Tuple[int, str]]):
         return SimulatorActionSimulatePlayer(self, team, player, mask)
@@ -313,7 +299,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
     def simulate(self):
         while not self.simulator.game.is_finish():
-            self.simulator.simulate_rally()
+            self.simulator.simulate_rally(set([]), heuristic_manager=True, heuristic_player=True)
 
     def reset(self):
         while self.simulator.game.instance != self.instance + 1:
