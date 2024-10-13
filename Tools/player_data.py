@@ -15,6 +15,7 @@ class PlayerData:
         self.p_serve: int = self._set_int_value(df["p_Serve"])
         self.p_receive: int = self._set_int_value(df["p_Receive"])
         self.country: str = df["Team"]
+        self.errors: int = 0
         self.dorsal: int = (
             self._set_int_value(df["Dorsal"])
             if "Dorsal" in df

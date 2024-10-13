@@ -4,7 +4,7 @@ from typing import List
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.enum import T1, PlayerRole
-from Tools.line_up import LineUp, StandardVolleyballLineUp
+from Tools.line_up import LineUp, StandardVolleyballLineUp, BestLineUp
 from Tools.player_data import PlayerData
 
 CANT_SIMULATIONS = 1  # Número de simulaciones para evaluar las alineaciones
@@ -35,7 +35,7 @@ def possible_line_up(players: List[PlayerData], team_side: str) -> LineUp:
         PlayerRole.MIDDLE_BLOCKER,
         PlayerRole.LIBERO,
     ]
-    lineup = StandardVolleyballLineUp(team_side=team_side)
+    lineup = BestLineUp(team_side=team_side)
     assigned_players = set()
 
     for role in roles:

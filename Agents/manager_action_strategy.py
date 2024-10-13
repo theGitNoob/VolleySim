@@ -29,10 +29,6 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
     for position_number, player_info in team_data.line_up.line_up.items():
         player_on_court = player_info.player
 
-        # Evitar sustituir al líbero
-        if player_info.player_role == PlayerRole.LIBERO:
-            continue
-
         # Generar posibles sustituciones con jugadores en el banco
         for bench_player in team_data.on_bench:
             # Evitar sustituir a un jugador que ya entró por el mismo jugador en el set
@@ -90,33 +86,86 @@ class ActionSimulateStrategy(ManagerActionStrategy):
             f'El entrenador del equipo {simulator.game.t1.name if team == T1 else simulator.game.t2.name} está pensando...'
         )
 
+        game = simulator.game
+        team_score = game.t1_score if team == T1 else game.t2_score
+        enemy_score = game.t2_score if team == T1 else game.t1_score
         actions = possible_actions(simulator.game, team)
+        points_history = game.points_history
+        last_team_points, last_enemy_points = self.get_continues_points(game, team)
 
-        results = {i: (0, 0) for i, _ in enumerate(actions)}
+        if points_history[len(points_history) - 1]["set"] not in [2, 4]:
+            return ManagerNothing(team, game)
 
-        for i, action in enumerate(actions):
-            for _ in range(CANT_SIMULATIONS):
-                simulator.dispatch().dispatch(action)
-                simulator.simulate_current()
-                # simulator.simulate()
+        if last_team_points != 0:
+            if 0 <= team_score - enemy_score < 3:
+                return ManagerNothing(team, game)
+            elif team_score - enemy_score >= 3:
+                return ManagerCelebrate(team, game)
+        elif 1 < last_enemy_points - last_team_points <= 3 and 1 < enemy_score - team_score <= 3:
+            return Timeout(team, game)
 
-                r = simulator.game.t1_score - simulator.game.t2_score
-                if team == T2:
-                    r = -r
+        if last_team_points - last_enemy_points > 3:
+            return ManagerCelebrate(team, game)
 
-                c, g = results[i]
+        if enemy_score - team_score < 3:
+            return ManagerNothing(team, game)
 
-                if r > 0:
-                    c += 1
+        max_errors = 0
+        player_error = None
+        for player in game.t1.on_field if team == T1 else game.t2.on_field:
+            if game.t1.data[player].errors > max_errors if team == T1 else game.t2.data[player].errors > max_errors:
+                max_errors = game.t1.data[player].errors if team == T1 else game.t2.data[player].errors
+                player_error = player
 
-                results[i] = (c, g + r)
+        value = 0
+        action_selected = None
+        for action in actions:
+            if isinstance(action,
+                          Substitution) and team_score < enemy_score:
+                if action.player_out == player_error:
+                    player_in_role = action.game.t1.get_player_role(
+                        action.player_in) if team == T1 else action.game.t2.get_player_role(action.player_in)
+                    player_in_data = action.game.t1.data[action.player_in] if team == T1 else action.game.t2.data[
+                        action.player_in]
+                    if player_in_role == 'L':
+                        if (player_in_data.p_receive + player_in_data.p_dig) / 2 > value:
+                            value = (player_in_data.p_receive + player_in_data.p_dig) / 2
+                            action_selected = action
+                    elif player_in_role == 'S':
+                        if player_in_data.p_set > value:
+                            value = player_in_data.p_set
+                            action_selected = action
+                    elif player_in_role == 'O':
+                        if player_in_data.p_attack > value:
+                            value = player_in_data.p_attack
+                            action_selected = action
+                    elif player_in_role == 'OH':
+                        if (player_in_data.p_attack + player_in_data.p_dig + player_in_data.p_receive) / 3 > value:
+                            value = (player_in_data.p_attack + player_in_data.p_dig + player_in_data.p_receive) / 3
+                            action_selected = action
+                    elif player_in_role == 'MB':
+                        if (player_in_data.p_block + player_in_data.p_attack) / 2 > value:
+                            value = (player_in_data.p_block + player_in_data.p_attack) / 2
+                            action_selected = action
+        return action_selected if action_selected else ManagerNothing(team, game)
 
-                simulator.reset()
-                simulator.reset_current()
-
-        action, _ = max(results.items(), key=lambda x: x[1][0] * 1000 + x[1][1])
-
-        return actions[action]
+    @staticmethod
+    def get_continues_points(game: Game, team: str) -> (int, int):
+        team_points = enemy_points = 0
+        change_team = change_enemy = False
+        game.points_history.reverse()
+        for point in game.points_history:
+            if point["team"] == team and not change_team:
+                team_points += 1
+                if enemy_points > 0:
+                    change_enemy = True
+            elif point["team"] != team and not change_enemy:
+                enemy_points += 1
+                change_team = True
+            else:
+                break
+        game.points_history.reverse()
+        return team_points, enemy_points
 
 
 class ActionMiniMaxStrategy(ManagerActionStrategy):
