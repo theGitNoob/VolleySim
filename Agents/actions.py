@@ -1,5 +1,5 @@
 ﻿# actions.py
-
+import copy
 from abc import ABC, abstractmethod
 from random import random
 from typing import List, Tuple
@@ -24,6 +24,7 @@ class Action(ABC):
         self.player: int = player
         self.team: str = team
         self.game: Game = game
+        self.game_copy = None
 
     def get_player_data(self) -> PlayerData:
         if self.team == T1:
@@ -66,6 +67,7 @@ class Receive(Action):
 
     def execute(self):
         # Actualizar estadísticas del equipo y del jugador
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -83,11 +85,8 @@ class Receive(Action):
 
         team_stats.receives -= 1
         player_stats.receives -= 1
-
-        if not self.success:
-            # Revertir punto otorgado
-            opponent_team = T1 if self.team == T2 else T1
-            self.game.revert_point(opponent_team)
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
 
 
 class Serve(Action):
@@ -104,6 +103,7 @@ class Serve(Action):
 
     def execute(self):
         # Actualizar estadísticas del equipo y del jugador
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -116,8 +116,6 @@ class Serve(Action):
         self.success = random() <= serving_skill
 
     def rollback(self):
-        # Revertir resistencia
-
         # Revertir estadísticas
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
@@ -125,10 +123,8 @@ class Serve(Action):
         team_stats.serves -= 1
         player_stats.serves -= 1
 
-        if not self.success:
-            # Revertir el punto otorgado
-            opponent_team = T1 if self.team == T2 else T2
-            self.game.revert_point(opponent_team)
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
 
 
 class Dig(Action):
@@ -144,6 +140,7 @@ class Dig(Action):
         self.success: bool = False
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -160,10 +157,8 @@ class Dig(Action):
         team_stats.digs -= 1
         player_stats.digs -= 1
 
-        if not self.success:
-            # Revertir punto del oponente
-            opponent_team = T1 if self.team == T2 else T2
-            self.game.revert_point(opponent_team)
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
 
 
 class Set(Action):
@@ -179,6 +174,7 @@ class Set(Action):
         self.success: bool = False
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         self.get_player_statistics()
 
@@ -194,6 +190,9 @@ class Set(Action):
         team_stats.sets -= 1
         player_stats.sets -= 1
 
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
+
 
 class Attack(Action):
     def __init__(
@@ -208,6 +207,7 @@ class Attack(Action):
         self.success: bool = False
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -224,6 +224,9 @@ class Attack(Action):
         team_stats.attacks -= 1
         player_stats.attacks -= 1
 
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
+
 
 class Block(Action):
     def __init__(
@@ -238,6 +241,7 @@ class Block(Action):
         self.success: bool = False
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -254,6 +258,9 @@ class Block(Action):
         team_stats.blocks -= 1
         player_stats.blocks -= 1
 
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
+
 
 class Move(Action):
     def __init__(
@@ -269,10 +276,13 @@ class Move(Action):
         self.dest = dest
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         self.game.field.move_player(self.src, self.dest)
 
     def rollback(self):
-        self.game.field.move_player(self.dest, self.src)
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
+        # self.game.field.move_player(self.dest, self.src)
 
 
 class Nothing(Action):
@@ -392,40 +402,41 @@ class Dispatch:
 
         # Verificar si la acción desencadena otros eventos
         if isinstance(action, Serve):
-            print(
-                f"{action.team} {action.player} sirve {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} sirve {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.serve_trigger(action)
         elif isinstance(action, Receive):
-            print(
-                f"{action.team} {action.player} recibe {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} recibe {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.receive_trigger(action)
         elif isinstance(action, Set):
-            print(
-                f"{action.team} {action.player} coloca {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} coloca {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.set_trigger(action)
         elif isinstance(action, Attack):
-            print(
-                f"{action.team} {action.player} ataque {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} ataque {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.attack_trigger(action)
         elif isinstance(action, Block):
-            print(
-                f"{action.team} {action.player} bloqueo {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} bloqueo {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.block_trigger(action)
         elif isinstance(action, Dig):
-            print(
-                f"{action.team} {action.player} defiende {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
-            )
+            # print(
+            #     f"{action.team} {action.player} defiende {'satisfactorio hacia: ' + str(action_dest) if action.success else 'fallido'}"
+            # )
             self.dig_trigger(action)
         elif isinstance(action, Move):
-            print(f"{action.team} {action.player} se mueve hacia: {action_dest}")
+            # print(f"{action.team} {action.player} se mueve hacia: {action_dest}")
             self.move_trigger(action)
         elif isinstance(action, Nothing):
-            print(f"{action.team} {action.player} no hizo nada")
+            pass
+            # print(f"{action.team} {action.player} no hizo nada")
 
     def move_trigger(self, action: Move):
         pass

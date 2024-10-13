@@ -104,9 +104,9 @@ class TeamData:
         """
         Obtiene el rol (posición) de un jugador basado en su dorsal.
         """
-        player = self.data.get(player_dorsal)
+        player: PlayerData = self.data.get(player_dorsal)
         if player:
-            return player.role
+            return player.position
         else:
             raise Exception(
                 f"No se encontró al jugador con dorsal {player_dorsal} en el equipo {self.name}"

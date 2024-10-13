@@ -327,12 +327,6 @@ MIN = -10000000000
 CANT_SIMULATIONS = 1
 
 
-class PlayerStrategy(ABC):
-    @abstractmethod
-    def play(self, simulator: SimulatorAgent) -> Action:
-        pass
-
-
 class MinimaxStrategy(PlayerStrategy):
     def __init__(self):
         super().__init__()
@@ -349,7 +343,7 @@ class MinimaxStrategy(PlayerStrategy):
         player = actions[0].player
         print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
 
-        depth = 2
+        depth = 1
 
         action = self.best_function(actions, possible_actions, simulator, depth, True)[
             1
@@ -364,16 +358,14 @@ class MinimaxStrategy(PlayerStrategy):
         simulator: SimulatorAgent,
         depth: int,
         first: bool = False,
-    ) -> Tuple[int, Action | None]:
+    ) -> Tuple[float, Action | None]:
         if depth == 0 or simulator.game.is_finish():
-            return self.evaluation(simulator.game, simulator.team)
+            return self.evaluation(simulator.game, actions[0].team)
 
         best, best_action = MIN, None
 
         for action in actions:
             len_stack = len(simulator.dispatch().stack)
-
-            str(simulator.game.field)
 
             simulator.dispatch().dispatch(action)
 

@@ -38,7 +38,7 @@ class VolleyballSimulation:
         yield field_str + "\n" + statistics
 
         while not self.game.is_finish():
-            simulator.simulate_rally()
+            simulator.simulate_rally(set([]))
             field_str = str(self.game.field)
             statistics = self.game_statistics()
             yield field_str + "\n" + statistics
@@ -109,6 +109,9 @@ class Simulator:
 
     def simulate_rally(
         self,
+        mask: Set[Tuple[int, str]],
+        heuristic_manager: bool = False,
+        heuristic_player: bool = False,
     ):
         self.stack.append(len(self.dispatch.stack))
 
@@ -124,12 +127,38 @@ class Simulator:
         current_team_actions = []
         other_team_actions = []
         ball_touched = False
+
+        current_team_players = self.team1 if current_team == T1 else self.team2
+        other_team_players = self.team2 if current_team == T1 else self.team1
+        current_team_players = current_team_players.players
+        other_team_players = other_team_players.players
+
         for player in c_team.on_field:
-            player_action = self.get_next_player_actions(player, current_team)
+            if (player, current_team) in mask:
+                continue
+            mask.add((player, other_team))
+            sim = self.get_player_simulator(current_team, player, mask)
+
+            player_action = (
+                current_team_players[player].play(sim)
+                if not heuristic_player
+                else current_team_players[player].play_heuristic(sim)
+            )
             current_team_actions.append(player_action)
 
         for player in o_team.on_field:
-            player_action = self.get_next_player_actions(player, other_team)
+
+            if (player, other_team) in mask:
+                continue
+            mask.add((player, other_team))
+            sim = self.get_player_simulator(current_team, player, mask)
+
+            player_action = (
+                other_team_players[player].play(sim)
+                if not heuristic_player
+                else other_team_players[player].play_heuristic(sim)
+            )
+
             other_team_actions.append(player_action)
 
         for action in current_team_actions:
@@ -176,8 +205,10 @@ class Simulator:
         # Simular decisiones de los entrenadores
         # self.simulate_managers(mask)
 
-    def get_next_player_actions(self, player: int, team: str) -> [Action]:
-        sim = self.get_player_simulator(team, player, set())
+    def get_next_player_actions(
+        self, player: int, team: str, mask: Set[Tuple[int, str]]
+    ) -> [Action]:
+        sim = self.get_player_simulator(team, player, mask)
         return self.get_player_action(team, player, sim)
 
     def get_next_team_actions(self, team) -> [Action]:
@@ -282,14 +313,14 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
     def simulate(self):
         while not self.simulator.game.is_finish():
-            self.simulator.simulate_rally(set())
+            self.simulator.simulate_rally()
 
     def reset(self):
         while self.simulator.game.instance != self.instance + 1:
             self.simulator.reset_instance()
 
     def simulate_current(self):
-        self.simulator.simulate_rally(self.mask.copy())
+        self.simulator.simulate_rally()
 
     def reset_current(self):
         while len(self.simulator.dispatch.stack) != self.stack_len:
@@ -312,13 +343,15 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
         self.mask: Set[Tuple[int, str]] = mask
 
     def simulate(self):
-        self.simulator.simulate_rally({(self.player, self.team)})
+        self.simulator.simulate_rally()
 
     def reset(self):
         self.simulator.reset_instance()
 
     def simulate_current(self):
-        self.simulator.simulate_rally(self.mask.copy())
+        self.simulator.simulate_rally(
+            self.mask.copy(), heuristic_manager=True, heuristic_player=True
+        )
 
     def reset_current(self):
         while len(self.simulator.dispatch.stack) != self.stack_len:

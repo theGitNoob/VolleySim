@@ -1,6 +1,6 @@
 from Agents.manager_action_strategy import ActionRandomStrategy
 from Agents.manager_line_up_strategy import LineUpRandomStrategy
-from Agents.player_strategy import RandomStrategy
+from Agents.player_strategy import MinimaxStrategy, RandomStrategy
 from Simulator.simulation_params import SimulationParams
 
 
@@ -14,15 +14,15 @@ class StartingParams:
 team_names = ("CUB", "ARG")
 
 # Configuraciones de inicio para diferentes escenarios de simulación
-all_random = StartingParams(
-    SimulationParams(
-        team_names,
-        (LineUpRandomStrategy(), LineUpRandomStrategy()),
-        (ActionRandomStrategy(), ActionRandomStrategy()),
-        (RandomStrategy(), RandomStrategy()),
-    ),
-    "all_random",
-)
+# all_random = StartingParams(
+#     SimulationParams(
+#         team_names,
+#         (LineUpRandomStrategy(), LineUpRandomStrategy()),
+#         (ActionRandomStrategy(), ActionRandomStrategy()),
+#         (RandomStrategy(), RandomStrategy()),
+#     ),
+#     "all_random",
+# )
 
 # all_smart = StartingParams(
 #     SimulationParams(
@@ -134,12 +134,12 @@ all_random = StartingParams(
 #     'minimax_vs_random_player'
 # )
 #
-# minimax_vs_minimax_player = StartingParams(
-#     SimulationParams(
-#         team_names,
-#         (LineUpRandomStrategy(), LineUpRandomStrategy()),
-#         (ActionRandomStrategy(), ActionRandomStrategy()),
-#         (MinimaxStrategy(), MinimaxStrategy())
-#     ),
-#     'minimax_vs_minimax_player'
-# )
+minimax_vs_minimax_player = StartingParams(
+    SimulationParams(
+        team_names,
+        (LineUpRandomStrategy(), LineUpRandomStrategy()),
+        (ActionRandomStrategy(), ActionRandomStrategy()),
+        (MinimaxStrategy(), RandomStrategy()),
+    ),
+    "minimax_vs_minimax_player",
+)

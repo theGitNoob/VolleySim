@@ -4,11 +4,11 @@ import time
 import pandas as pd
 
 from Simulator.build_data import conf_game
-from starting_params import all_random
+from starting_params import minimax_vs_minimax_player
 
 df = pd.read_csv("data/VNL2024Men.csv")
 # df.loc[:, df.columns.str.startswith("p_")] = 50
-df['Dorsal'] = range(1, len(df) + 1)
+df["Dorsal"] = range(1, len(df) + 1)
 
 # params = conf_game_llm(input(
 #     """
@@ -34,7 +34,7 @@ df['Dorsal'] = range(1, len(df) + 1)
 #     managers_action_strategy=(None, None),
 #     players_action_strategy=(None, None)
 # )
-params = all_random
+params = minimax_vs_minimax_player
 
 if params is None:
     print("No se pudo inferir los parámetros de la simulación")
