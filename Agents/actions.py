@@ -341,48 +341,46 @@ class Nothing(Action):
         pass
 
 
+class LazyAction(Action, ABC):
+    @abstractmethod
+    def lazy_execute(self):
+        pass
+
+    @abstractmethod
+    def lazy_reset(self):
+        pass
+
+
 # Definición de la acción Substitution
-class Substitution(Action):
-    def __init__(self, player_out: int, player_in: int, team: str, game: Game) -> None:
-        super().__init__((0, 0), (0, 0), player_out, team, game)
-        self.player_in = player_in
-        self.player_out = player_out
-
-    def execute(self):
-        self.game_copy = copy.deepcopy(self.game)
-        team_data = self.game.t1 if self.team == T1 else self.game.t2
-
-        # Registrar la sustitución en el historial
-        team_data.substitution_history.append(
-            {"out": self.player_out, "in": self.player_in, "set": self.game.current_set}
-        )
-
+class Substitution(LazyAction):
+    def lazy_execute(self):
         # Actualizar el line-up
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
         team_data.line_up.substitute_player(self.player_out, self.player_in)
 
-        # Actualizar las listas de jugadores en cancha y en banca
+        if self.player in team_data.unavailable:
+            team_data.substitution_history.remove((self.player_out, self.player_in))
+            self.not_execute = True
+            return
+            # Actualizar las listas de jugadores en cancha y en banca
         team_data.on_field.remove(self.player_out)
         team_data.on_field.add(self.player_in)
         team_data.on_bench.remove(self.player_in)
         team_data.on_bench.add(self.player_out)
+        team_data.unavailable.add(self.player_out)
 
         # Actualizar el campo de juego
         self.game.field.update_player_on_field(self.player_in, self.player_out)
 
-    def rollback(self):
-        # if self.game_copy is not None:
-        recursive_update(self.game, self.game_copy)
-        # return
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
-        # print('se han deshecho los cambios hasta este punto')
-        # return
+    def lazy_reset(self):
+        # Actualizar el line-up
         team_data = self.game.t1 if self.team == T1 else self.game.t2
 
-        # Revertir la sustitución
-        team_data.substitution_history.pop()
+        if self.not_execute:
+            self.not_execute = False
+            team_data.substitution_history.append((self.player_out, self.player_in))
+            return
 
-        # Actualizar el line-up
         team_data.line_up.substitute_player(self.player_in, self.player_out)
 
         # Actualizar las listas de jugadores en cancha y en banca
@@ -396,6 +394,23 @@ class Substitution(Action):
             self.player_out, self.player_in
         )
 
+    def __init__(self, player_out: int, player_in: int, team: str, game: Game) -> None:
+        super().__init__((0, 0), (0, 0), player_out, team, game)
+        self.player_in = player_in
+        self.player_out = player_out
+        self.not_execute: bool = False
+
+    def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
+
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
+        team_data.substitution_history.append((self.player_out, self.player_in))
+
+    def rollback(self):
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
+
+        team_data.substitution_history.remove((self.player_out, self.player_in))
+
 
 # Definición de la acción Timeout
 class Timeout(Action):
@@ -405,7 +420,7 @@ class Timeout(Action):
     def execute(self):
         # Registrar el tiempo muerto
         self.game.register_time_out(self.team)
-        print("Tiempo muerto de " + self.team + ". Pulsa Enter para continuar...")
+        # print("Tiempo muerto de " + self.team + ". Pulsa Enter para continuar...")
         # input()
 
     def rollback(self):
@@ -419,7 +434,8 @@ class ManagerNothing(Action):
         super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
-        print(f"{self.team} decide no hacer nada")
+        # print(f"{self.team} decide no hacer nada")
+        pass
 
     def rollback(self):
         # No hay nada que revertir
@@ -439,12 +455,49 @@ class ManagerCelebrate(Action):
         pass
 
 
+class CompressAction(Action):
+    def __init__(self, actions: List[LazyAction]) -> None:
+        super().__init__((0, 0), (0, 0), -1, '', None)
+        self.actions: List[LazyAction] = actions
+
+    def execute(self):
+        for action in self.actions:
+            action.lazy_execute()
+
+    def rollback(self):
+        self.actions.reverse()
+        for action in self.actions:
+            action.lazy_reset()
+
+
+class RestoreLineupAction(Action):
+    def __init__(self, player: int, team: str, game: Game) -> None:
+        super().__init__((0, 0), (0, 0), player, team, game)
+
+    def execute(self):
+        pass
+
+    def rollback(self):
+        pass
+
+
 class Dispatch:
     def __init__(self, game: Game) -> None:
         self.stack: List[Action] = []
-        self.game = game
+        self.lazy_stack: List[Action | LazyAction] = []
+        # self.game = game
+
+    def clear_lazy(self):
+        action = CompressAction(self.lazy_stack.copy())
+        self.dispatch(action)
+        self.lazy_stack.clear()
 
     def dispatch(self, action: Action):
+        if isinstance(action, LazyAction):
+            self.lazy_stack.append(action)
+        if isinstance(action, RestoreLineupAction):
+            self.clear_lazy()
+
         self.stack.append(action)
         action.execute()
 
@@ -489,99 +542,104 @@ class Dispatch:
             # print(f"{action.team} {action.player} no hizo nada")
 
         elif isinstance(action, Substitution):
-            print(
-                f"{action.team} {action.player_out} sale y {action.player_in} entra al campo"
-            )
+            # print(
+            #     f"{action.team} {action.player_out} sale y {action.player_in} entra al campo"
+            # )
+            pass
 
         elif isinstance(action, Timeout):
-            print(f"{action.team} pide tiempo muerto")
+            # print(f"{action.team} pide tiempo muerto")
+            pass
 
         elif isinstance(action, ManagerNothing):
-            print(f"{action.team} no hizo nada")
+            # print(f"{action.team} no hizo nada")
+            pass
 
     def move_trigger(self, action: Move):
         pass
 
     def serve_trigger(self, action: Serve):
-        self.game.last_player_touched = action.player
-        self.game.last_team_touched = action.team
+        action.game.last_player_touched = action.player
+        action.game.last_team_touched = action.team
         if not action.success:
-            self.game.rally_over = True
+            action.game.rally_over = True
         else:
-            self.game.has_ball_landed = False
-            self.game.field.move_ball(action.src, action.dest)
-            self.game.general_touches += 1
-            self.game.touches[action.team] += 1
-            self.game.ball_possession_team = T1 if action.team == T2 else T2
+            action.game.has_ball_landed = False
+            action.game.field.move_ball(action.src, action.dest)
+            action.game.general_touches += 1
+            action.game.touches[action.team] += 1
+            action.game.ball_possession_team = T1 if action.team == T2 else T2
 
     def receive_trigger(self, action: Receive):
-        self.game.last_player_touched = action.player
-        self.game.last_team_touched = action.team
+        action.game.last_player_touched = action.player
+        action.game.last_team_touched = action.team
         if not action.success:
-            self.game.rally_over = True
+            action.game.rally_over = True
         else:
-            ball_crossed_net = self.game.field.move_ball(action.src, action.dest)
+            ball_crossed_net = action.game.field.move_ball(action.src, action.dest)
             if ball_crossed_net:
-                self.game.touches[action.team] = 0
+                action.game.touches[action.team] = 0
             else:
-                self.game.general_touches += 1
-            self.game.has_ball_landed = False
-            self.game.touches[action.team] += 1
+                action.game.general_touches += 1
+            action.game.has_ball_landed = False
+            action.game.touches[action.team] += 1
 
     def set_trigger(self, action: Set):
-        self.game.last_player_touched = action.player
-        self.game.last_team_touched = action.team
+        action.game.last_player_touched = action.player
+        action.game.last_team_touched = action.team
         if not action.success:
-            self.game.rally_over = True
+            action.game.rally_over = True
 
         else:
-            self.game.has_ball_landed = False
-            self.game.field.move_ball(action.src, action.dest)
-            self.game.general_touches += 1
-            self.game.touches[action.team] += 1
+            action.game.has_ball_landed = False
+            action.game.field.move_ball(action.src, action.dest)
+            action.game.general_touches += 1
+            action.game.touches[action.team] += 1
 
     def attack_trigger(self, action: Attack):
-        self.game.last_player_touched = action.player
-        self.game.last_team_touched = action.team
+        action.game.last_player_touched = action.player
+        action.game.last_team_touched = action.team
         if not action.success:
-            self.game.rally_over = True
+            action.game.rally_over = True
 
         else:
-            self.game.has_ball_landed = False
-            self.game.field.move_ball(action.src, action.dest)
-            self.game.general_touches += 1
-            self.game.touches[action.team] += 1
-            self.game.touches[action.team] = 0
-            self.game.ball_possession_team = T1 if action.team == T2 else T2
+            action.game.has_ball_landed = False
+            action.game.field.move_ball(action.src, action.dest)
+            action.game.general_touches += 1
+            action.game.touches[action.team] += 1
+            action.game.touches[action.team] = 0
+            action.game.ball_possession_team = T1 if action.team == T2 else T2
 
     def block_trigger(self, action: Block):
         if not action.success:
             # Bloqueo fallido, la bola pasa
             return
         else:
-            self.game.has_ball_landed = False
-            self.game.last_player_touched = action.player
-            self.game.last_team_touched = action.team
-            self.game.field.move_ball(action.src, action.dest)
-            self.game.general_touches += 1
+            action.game.has_ball_landed = False
+            action.game.last_player_touched = action.player
+            action.game.last_team_touched = action.team
+            action.game.field.move_ball(action.src, action.dest)
+            action.game.general_touches += 1
 
     def dig_trigger(self, action: Dig):
-        self.game.last_player_touched = action.player
-        self.game.last_team_touched = action.team
-        self.game.general_touches += 1
+        action.game.last_player_touched = action.player
+        action.game.last_team_touched = action.team
+        action.game.general_touches += 1
         if not action.success:
-            self.game.rally_over = True
+            action.game.rally_over = True
         else:
-            self.game.has_ball_landed = False
-            ball_crossed_net = self.game.field.move_ball(action.src, action.dest)
+            action.game.has_ball_landed = False
+            ball_crossed_net = action.game.field.move_ball(action.src, action.dest)
             if ball_crossed_net:
-                self.game.touches[action.team] = 0
-                self.game.ball_possession_team = T1 if action.team == T2 else T2
+                action.game.touches[action.team] = 0
+                action.game.ball_possession_team = T1 if action.team == T2 else T2
             else:
-                self.game.touches[action.team] += 1
+                action.game.touches[action.team] += 1
 
     def rollback(self):
         # Deshacer la última acción
+        if len(self.lazy_stack) != 0 and self.lazy_stack[-1] == self.stack[-1]:
+            self.lazy_stack.pop()
         if self.stack:
             action = self.stack.pop()
             action.rollback()

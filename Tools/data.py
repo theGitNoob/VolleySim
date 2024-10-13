@@ -1,4 +1,4 @@
-﻿from typing import Dict, List, Set
+﻿from typing import Dict, List, Set, Tuple
 
 from .line_up import LineUp
 from .player_data import PlayerData
@@ -71,7 +71,7 @@ class TeamData:
             []
         )  # Jugadores no disponibles (lesionados, etc.)
 
-        self.substitution_history: List[Dict[str, int]] = (
+        self.substitution_history: List[Tuple[int, int]] = (
             []
         )  # Historial de sustituciones (dorsal_in, dorsal_out)
 

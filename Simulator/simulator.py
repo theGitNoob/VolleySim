@@ -195,10 +195,8 @@ class Simulator:
         if self.game.has_ball_landed:
             ball_position = self.game.field.find_ball()
             scorer_team = T1 if ball_position.team == T2 else T2
-            # self.simulate_managers(mask)
             self.game.score_point(scorer_team)
         elif self.game.rally_over:
-            # self.simulate_managers(mask)
             self.game.score_point(self.game.last_team_touched)
 
         # Incrementar el contador de instancias (rallies)
@@ -225,7 +223,7 @@ class Simulator:
             if (T2, "manager") not in mask:
                 mask.add((T2, "manager"))
                 sim = self.get_simulator(self.team2.manager, T2, mask)
-                action = self.team2.manager.play(sim)
+                action = self.team2.manager.action(sim)
                 self.dispatch.dispatch(action)
 
     def get_simulator(self, manager: Manager, team: str, mask: Set[Tuple[int, str]]):

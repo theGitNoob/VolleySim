@@ -6,7 +6,6 @@ from typing import List, Tuple
 
 from Tools.enum import T1, T2, PlayerRole
 from Tools.game import Game
-
 from .actions import Action, ManagerNothing, Substitution, Timeout, ManagerCelebrate
 from .simulator_agent import SimulatorAgent
 
@@ -21,7 +20,7 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
 
     team_data = game.t1 if team == T1 else game.t2
 
-    max_substitutions_per_set = 6  # Máximo de sustituciones por set en voleibol
+    max_substitutions_per_set = 2  # Máximo de sustituciones por set en voleibol
     if len(team_data.substitution_history) >= max_substitutions_per_set:
         return []
 
@@ -39,7 +38,8 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
             if any(
                     sub
                     for sub in team_data.substitution_history
-                    if sub["in"] == bench_player and sub["out"] == player_on_court
+
+                    if sub[1] == bench_player and sub[0] == player_on_court
             ):
                 continue
 

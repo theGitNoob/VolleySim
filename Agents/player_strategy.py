@@ -126,7 +126,7 @@ class MinimaxStrategy(PlayerStrategy):
 
         team = actions[0].team
         player = actions[0].player
-        # print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
+        print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
 
         depth = 1
 
@@ -196,6 +196,8 @@ class GameEvaluator:
         # Diferencia de puntos
         score_diff = game.get_team_score(team) - game.get_team_score(opponent_team)
 
+        set_diff = game.get_team_sets(team) - game.get_team_score(opponent_team)
+
         # Posesión de la pelota
         ball_possession = 1 if game.ball_possession_team == team else -1
 
@@ -207,6 +209,7 @@ class GameEvaluator:
 
         # Valor total
         value = (
+                set_diff * 100000 +
                 score_diff * 100
                 + ball_possession * 50
                 + touches_left * 20

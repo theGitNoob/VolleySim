@@ -97,14 +97,11 @@ class Game:
             # Reiniciar posiciones de los jugadores
             self.t1.line_up.reset_positions("T1")
             self.t2.line_up.reset_positions(self.t2.name)
-            # TODO hacer un global_serving_team para hacer el cambio de servicio despues de cada set
             self.field.conf_line_ups(
                 self.t1.line_up,
                 self.t2.line_up,
                 "T2" if self.serving_team == T1 else "T1",
             )
-            print("Nuevo campo")
-            print(self.field)
 
     def end_match(self):
         if self.t1_sets > self.t2_sets:
@@ -328,3 +325,6 @@ class Game:
             self.t1.time_outs += 1
         else:
             self.t2.time_outs += 1
+
+    def get_team_sets(self, team: str):
+        return self.t1_sets if team == T1 else self.t1_sets
