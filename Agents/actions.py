@@ -304,6 +304,7 @@ class Substitution(Action):
         self.player_out = player_out
 
     def execute(self):
+        self.game_copy = copy.deepcopy(self.game)
         team_data = self.game.t1 if self.team == T1 else self.game.t2
 
         # Registrar la sustitución en el historial
@@ -321,29 +322,31 @@ class Substitution(Action):
         team_data.on_bench.add(self.player_out)
 
         # Actualizar el campo de juego
-        self.game.field.update_player_on_field(team_data, self.player_in, self.player_out)
+        self.game.field.update_player_on_field(self.player_in, self.player_out)
         print(f"{self.team} sustituye a {self.player_out} por {self.player_in}. Pulsa Enter para continuar...")
         # input()
 
     def rollback(self):
-        team_data = self.game.t1 if self.team == T1 else self.game.t2
+        self.game.__dict__.update(self.game_copy.__dict__)
+        self.game_copy = None
+        # team_data = self.game.t1 if self.team == T1 else self.game.t2
+        # 
+        # # Revertir la sustitución
+        # team_data.substitution_history.pop()
+        # 
+        # # Actualizar el line-up
+        # team_data.line_up.substitute_player(self.player_in, self.player_out)
+        # 
+        # # Actualizar las listas de jugadores en cancha y en banca
+        # team_data.on_field.remove(self.player_in)
+        # team_data.on_field.add(self.player_out)
+        # team_data.on_bench.remove(self.player_out)
+        # team_data.on_bench.add(self.player_in)
 
-        # Revertir la sustitución
-        team_data.substitution_history.pop()
-
-        # Actualizar el line-up
-        team_data.line_up.substitute_player(self.player_in, self.player_out)
-
-        # Actualizar las listas de jugadores en cancha y en banca
-        team_data.on_field.remove(self.player_in)
-        team_data.on_field.add(self.player_out)
-        team_data.on_bench.remove(self.player_out)
-        team_data.on_bench.add(self.player_in)
-
-        # Actualizar el campo de juego
-        self.game.field.update_player_on_field(
-            self.player_in, self.player_out, self.team
-        )
+        # # Actualizar el campo de juego
+        # self.game.field.update_player_on_field(
+        #     self.player_out, self.player_in
+        # )
 
 
 # Definición de la acción Timeout

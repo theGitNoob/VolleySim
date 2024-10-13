@@ -21,7 +21,7 @@ INTERVAL_MANAGER = 20  # Intervalo para decisiones del entrenador (sustituciones
 
 class VolleyballSimulation:
     def __init__(
-        self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
+            self, team1: Tuple[TeamAgent, TeamData], team2: Tuple[TeamAgent, TeamData]
     ) -> None:
 
         self.t1: TeamAgent = team1[0]
@@ -108,10 +108,10 @@ class Simulator:
         self.game.instance = 1
 
     def simulate_rally(
-        self,
-        mask: Set[Tuple[int, str]],
-        heuristic_manager: bool = False,
-        heuristic_player: bool = False,
+            self,
+            mask: Set[Tuple[int, str]],
+            heuristic_manager: bool = False,
+            heuristic_player: bool = False,
     ):
         self.stack.append(len(self.dispatch.stack))
 
@@ -167,12 +167,12 @@ class Simulator:
 
             self.dispatch.dispatch(action)
             if action.__class__.__name__ in (
-                "Serve",
-                "Attack",
-                "Block",
-                "Receive",
-                "Dig",
-                "Set",
+                    "Serve",
+                    "Attack",
+                    "Block",
+                    "Receive",
+                    "Dig",
+                    "Set",
             ):
                 ball_touched = True
 
@@ -182,12 +182,12 @@ class Simulator:
 
             self.dispatch.dispatch(action)
             if action.__class__.__name__ in (
-                "Serve",
-                "Attack",
-                "Block",
-                "Receive",
-                "Dig",
-                "Set",
+                    "Serve",
+                    "Attack",
+                    "Block",
+                    "Receive",
+                    "Dig",
+                    "Set",
             ):
                 ball_touched = True
 
@@ -206,7 +206,7 @@ class Simulator:
         self.simulate_managers(set())
 
     def get_next_player_actions(
-        self, player: int, team: str, mask: Set[Tuple[int, str]]
+            self, player: int, team: str, mask: Set[Tuple[int, str]]
     ) -> [Action]:
         sim = self.get_player_simulator(team, player, mask)
         return self.get_player_action(team, player, sim)
@@ -320,7 +320,8 @@ class SimulatorActionSimulateManager(SimulatorAgent):
             self.simulator.reset_instance()
 
     def simulate_current(self):
-        self.simulator.simulate_rally()
+        self.simulator.simulate_rally(
+            self.mask.copy(), heuristic_manager=True, heuristic_player=True)
 
     def reset_current(self):
         while len(self.simulator.dispatch.stack) != self.stack_len:
@@ -332,7 +333,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
 class SimulatorActionSimulatePlayer(SimulatorAgent):
     def __init__(
-        self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
+            self, simulator: Simulator, team: str, player: int, mask: Set[Tuple[int, str]]
     ):
         super().__init__(simulator.game)
         self.team: str = team
@@ -343,7 +344,8 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
         self.mask: Set[Tuple[int, str]] = mask
 
     def simulate(self):
-        self.simulator.simulate_rally()
+        self.simulator.simulate_rally(
+            {(self.player, self.team)}, heuristic_manager=True, heuristic_player=True)
 
     def reset(self):
         self.simulator.reset_instance()

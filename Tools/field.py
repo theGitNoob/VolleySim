@@ -1,7 +1,6 @@
 ﻿import math
 from typing import List, Optional, Tuple
 
-from Tools.data import TeamData
 from Tools.enum import T1, T2
 from Tools.line_up import LineUp
 
@@ -242,7 +241,7 @@ class Field:
         field_str += "   " + "|".join(f"{c + 1:02}" for c in range(self.columns)) + "\n"
         return field_str
 
-    def update_player_on_field(self, team_data: TeamData, player_in: int, player_out: int):
+    def update_player_on_field(self, player_in: int, player_out: int):
         for grid in self.grid:
             for g in grid:
                 if g.player == player_out:

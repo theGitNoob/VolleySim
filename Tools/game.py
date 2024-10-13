@@ -322,3 +322,9 @@ class Game:
             self.t1.time_outs -= 1
         else:
             self.t2.time_outs -= 1
+
+    def revert_timeout(self, team):
+        if team == T1:
+            self.t1.time_outs += 1
+        else:
+            self.t2.time_outs += 1

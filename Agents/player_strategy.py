@@ -1,8 +1,6 @@
 ﻿from random import choice
 from typing import Callable
 
-from Tools.enum import PlayerRole
-
 from .actions import *
 from .behavior import Behavior, RandomBehavior, Defensive, ReturnToPosition, Ofensive
 from .simulator_agent import SimulatorAgent
@@ -128,9 +126,9 @@ class MinimaxStrategy(PlayerStrategy):
 
         team = actions[0].team
         player = actions[0].player
-        print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
+        # print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
 
-        depth = 2
+        depth = 1
 
         action = self.best_function(actions, possible_actions, simulator, depth, True)[
             1
@@ -139,12 +137,12 @@ class MinimaxStrategy(PlayerStrategy):
         return action
 
     def best_function(
-        self,
-        actions: List[Action],
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
-        depth: int,
-        first: bool = False,
+            self,
+            actions: List[Action],
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
+            depth: int,
+            first: bool = False,
     ) -> Tuple[float, Action | None]:
         if depth == 0 or simulator.game.is_finish():
             return self.evaluation(simulator.game, actions[0].team)
