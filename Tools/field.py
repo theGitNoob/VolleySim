@@ -246,4 +246,4 @@ class Field:
             for g in grid:
                 if g.player == player_out:
                     g.player = player_in
-                    break
+                    return
