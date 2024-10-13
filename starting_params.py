@@ -1,6 +1,6 @@
-from Agents.manager_action_strategy import ActionRandomStrategy
+from Agents.manager_action_strategy import ActionRandomStrategy, ActionSimulateStrategy
 from Agents.manager_line_up_strategy import LineUpRandomStrategy
-from Agents.player_strategy import RandomStrategy
+from Agents.player_strategy import RandomStrategy, VolleyballStrategy
 from Simulator.simulation_params import SimulationParams
 
 
@@ -11,15 +11,15 @@ class StartingParams:
 
 
 # Nombres de equipos de voleibol (puedes reemplazarlos por los que prefieras)
-team_names = ("CUB", "ARG")
+team_names = ("JPN", "POL")
 
 # Configuraciones de inicio para diferentes escenarios de simulación
 all_random = StartingParams(
     SimulationParams(
         team_names,
         (LineUpRandomStrategy(), LineUpRandomStrategy()),
-        (ActionRandomStrategy(), ActionRandomStrategy()),
-        (RandomStrategy(), RandomStrategy()),
+        (ActionRandomStrategy(), ActionSimulateStrategy()),
+        (VolleyballStrategy(), VolleyballStrategy()),
     ),
     "all_random",
 )

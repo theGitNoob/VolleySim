@@ -1,14 +1,12 @@
 ﻿# behavior.py
 
 import random
-from typing import Tuple
 
-from Tools.enum import T1
+from Tools.enum import T1, dict_t1, dict_t2
+from Tools.field import GridField
 from Tools.game import Game
-from Tools.line_up import LineUp
 
-from .actions import (Action, Attack, Block, Dig, Move, Nothing, Receive,
-                      Serve, Set)
+from .actions import (Action, Block, Dig, Move, Receive, Set, Serve, Nothing)
 
 
 class Behavior:
@@ -22,161 +20,115 @@ class Behavior:
         self.importance = importance
 
 
+class Random(Behavior):
+    def eval(self, action: Action, game: Game) -> float:
+        return random.random() * self.importance
+
+
+class ReturnToPosition(Behavior):
+    def eval(self, action: Action, game: Game) -> float:
+        team = game.t1 if action.team == T1 else game.t2
+        line_up_position = team.line_up.get_player_position(action.player)
+        line_up_position = (line_up_position.row, line_up_position.col)
+        source = action.src
+        destination = action.dest
+
+        if action is Move:
+            return (1 if game.field.distance(destination, line_up_position) < game.field.distance(source,
+                                                                                                  line_up_position) else 0) \
+                * self.importance
+        else:
+            return 0
+
+
+class Defensive(Behavior):
+    def eval(self, action: Action, game: Game) -> float:
+        source = action.src
+        destination = action.dest
+        ball_position = game.field.find_ball()
+        self_team = action.team
+        opponent_team = game.get_opponent_team(self_team)
+        player = game.field.find_player(action.player, self_team)
+
+        value = 0
+
+        # Si el equipo tiene la posesión del balón
+        if ball_position.team == self_team:
+            if isinstance(action, Block):
+                neighbor_opponents = 0
+                x, y = destination
+                dest_grid: GridField = GridField(x, y, -1, False, '')
+                for grid in game.field.neighbor_grids(dest_grid, 2):
+                    if grid.team == opponent_team:
+                        neighbor_opponents += 1
+                value += 1 / (neighbor_opponents + 1)
+            elif isinstance(action, Receive) or isinstance(action, Dig):
+                setter_position = game.role_position('S', self_team)
+                distance_to_setter = game.field.distance(destination, (setter_position.row, setter_position.col))
+                value += 1 / (distance_to_setter + 1)
+            elif isinstance(action, Set):
+                opposite_position = game.role_position('O', self_team)
+                opposite_hitter_position = game.role_position('OH', self_team, action.dest)
+                distance_to_attack = min(
+                    game.field.distance(destination, (opposite_position.row, opposite_position.col)),
+                    game.field.distance(destination, (opposite_hitter_position.row, opposite_hitter_position.col)))
+                closest_enemy_distance = game.closest_enemy_distance(destination, self_team)
+                value += 1 / ((distance_to_attack + closest_enemy_distance) + 1)
+
+        else:
+            # El equipo contrario tiene la posesión, acciones defensivas
+            if isinstance(action, Move) or isinstance(action, Nothing):
+                if player.position == 'L':
+                    distance = game.field.distance(destination, dict_t1[5])
+                    return 1 / (distance + 1)
+                elif player.position == 'O':
+                    if is_front_row(player.row, self_team):
+                        distance = game.field.distance(destination, dict_t1[2] if self_team == T1 else dict_t2[2])
+                        return 1 / (distance + 1)
+                    else:
+                        distance = game.field.distance(destination, dict_t1[1] if self_team == T1 else dict_t2[1])
+                        return 1 / (distance + 1)
+                elif player.position == 'OH':
+                    if is_front_row(player.row, self_team):
+                        distance = game.field.distance(destination, dict_t1[4] if self_team == T1 else dict_t2[4])
+                        return 1 / (distance + 1)
+                    else:
+                        distance = game.field.distance(destination, dict_t1[6] if self_team == T1 else dict_t2[6])
+                        return 1 / (distance + 1)
+                elif player.position == 'S':
+                    distance = game.field.distance(destination, dict_t1[3] if self_team == T1 else dict_t2[3])
+                    return 1 / 10000000 * (distance + 1)
+                elif player.position == 'MB':
+                    distance = game.field.distance(destination, dict_t1[3] if self_team == T1 else dict_t2[3])
+                    return 1 / (distance + 1)
+
+        return value + self.importance
+
+
+class Ofensive(Behavior):
+    def eval(self, action: Action, game: Game) -> float:
+        destination = action.dest
+        opponent_team = game.get_opponent_team(action.team)
+        value = 0
+
+        if isinstance(action, Serve):
+            return 1 * self.importance
+        elif not isinstance(action, Nothing):
+            neighbor_opponents = 0
+            x, y = destination
+            dest_grid: GridField = GridField(x, y, -1, False, '')
+            for grid in game.field.neighbor_grids(dest_grid, 2):
+                if grid.team == opponent_team:
+                    neighbor_opponents += 1
+            value += 1 / (neighbor_opponents + 1)
+
+        return value + self.importance
+
+
 class RandomBehavior(Behavior):
     def eval(self, action: Action, game: Game) -> float:
         return random.random() * self.importance
 
 
-class ReturnToPositionBehavior(Behavior):
-    def eval(self, action: Action, game: Game) -> float:
-        team = game.t1 if action.team == T1 else game.t2
-        line_up_position = team.line_up.get_player_position(action.player)
-        line_up_position = (line_up_position.row, line_up_position.col)
-
-        if isinstance(action, Move):
-            source = action.src
-            destination = action.dest
-            # Si el jugador se mueve más cerca de su posición asignada
-            if game.field.distance(destination, line_up_position) < game.field.distance(
-                source, line_up_position
-            ):
-                return self.importance
-            else:
-                return 0.0
-        else:
-            return 0.0
-
-
-class DefensiveBehavior(Behavior):
-    def eval(self, action: Action, game: Game, line_up: LineUp) -> float:
-        team = game.t1 if action.team == T1 else game.t2
-        current_position = line_up.get_player_position(action.player)
-
-        value = 0.0
-
-        # Determinar si el jugador está en posición delantera o trasera
-        is_front_row = self.is_front_row(current_position, action.team, game)
-
-        if game.ball_in_opponent_court():
-            if isinstance(action, Move):
-                defensive_position = team.get_defensive_position(action.player)
-                if defensive_position and game.field.distance(
-                    action.dest, defensive_position
-                ) < game.field.distance(action.src, defensive_position):
-                    value = self.importance
-            elif isinstance(action, Block) and is_front_row:
-                # Solo los jugadores en la fila delantera pueden bloquear
-                value = self.importance
-        else:
-            if isinstance(action, Receive) and not is_front_row:
-                # Jugadores en la fila trasera se enfocan en recibir
-                value = self.importance
-            elif isinstance(action, Dig):
-                value = self.importance
-            elif isinstance(action, Move):
-                anticipated_position = game.predict_ball_landing_position()
-                if anticipated_position and game.field.distance(
-                    action.dest, anticipated_position
-                ) < game.field.distance(action.src, anticipated_position):
-                    value = self.importance
-
-        return value
-
-    @staticmethod
-    def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
-        # Determina si la posición está en la fila delantera
-        net_row = game.field.net_row
-        if team == T1:
-            return net_row - 3 <= position[0] < net_row
-        else:
-            return net_row < position[0] <= net_row + 3
-
-
-class OffensiveBehavior(Behavior):
-    def eval(self, action: Action, game: Game) -> float:
-        team = game.t1 if action.team == T1 else game.t2
-        current_position = game.get_player_position(action.player, action.team)
-
-        value = 0.0
-
-        is_front_row = self.is_front_row(current_position, action.team, game)
-
-        if game.ball_in_our_court():
-            if game.player_has_ball(action.player, action.team):
-                if isinstance(action, Set):
-                    value = self.importance
-                elif isinstance(action, Attack) and is_front_row:
-                    # Solo los jugadores en la fila delantera pueden atacar por encima de la red
-                    value = self.importance
-                elif isinstance(action, Move):
-                    attacking_position = team.get_attacking_position(action.player)
-                    if attacking_position and game.field.distance(
-                        action.dest, attacking_position
-                    ) < game.field.distance(action.src, attacking_position):
-                        value = self.importance
-            else:
-                if isinstance(action, Move):
-                    support_position = team.get_support_position(action.player)
-                    if support_position and game.field.distance(
-                        action.dest, support_position
-                    ) < game.field.distance(action.src, support_position):
-                        value = self.importance
-        else:
-            if isinstance(action, Serve) and game.is_player_server(action.player):
-                value = self.importance
-
-        return value
-
-    @staticmethod
-    def is_front_row(position: Tuple[int, int], team: str, game: Game) -> bool:
-        net_row = game.field.net_row
-        if team == T1:
-            return net_row - 3 <= position[0] < net_row
-        else:
-            return net_row < position[0] <= net_row + 3
-
-
-class AvoidFatigueBehavior(Behavior):
-    def eval(self, action: Action, game: Game) -> float:
-        # Evaluar acciones que consumen menos energía
-        value = 0.0
-        effort = 0
-
-        if isinstance(action, Move):
-            effort = 1
-        elif isinstance(action, Attack):
-            effort = 3
-        elif isinstance(action, Serve):
-            effort = 2
-        elif isinstance(action, Block):
-            effort = 2
-        elif isinstance(action, Dig):
-            effort = 2
-        elif isinstance(action, Receive):
-            effort = 2
-        elif isinstance(action, Set):
-            effort = 1
-        elif isinstance(action, Nothing):
-            effort = 0
-            value = self.importance  # Hacer nada conserva energía
-
-        if effort > 0 and not isinstance(action, Nothing):
-            value = (1 / (effort + 1)) * self.importance
-
-        self.update_importance(action.team, game)
-        return value
-
-    def update_importance(self, team: str, game: Game) -> None:
-        # Ajustar la importancia según la situación del juego
-        self.importance *= 1.01  # Aumentar gradualmente la importancia
-        self_team_sets = game.t1_sets if team == T1 else game.t2_sets
-        enemy_team_sets = game.t2_sets if team == T1 else game.t1_sets
-        # Reducir importancia si estamos perdiendo por mucho
-        if enemy_team_sets - self_team_sets > 1:
-            self.importance *= 0.9
-        # Aumentar importancia en situaciones críticas
-        if (
-            game.current_set == game.max_sets
-            and max(game.t1_score, game.t2_score) >= 20
-        ):
-            self.importance *= 0.75  # Conservar energía para puntos críticos
+def is_front_row(row: int, team: str) -> bool:
+    return (team == T1 and 5 < row < 9) or (team != T1 and 9 < row < 13)

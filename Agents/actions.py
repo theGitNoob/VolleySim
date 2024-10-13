@@ -11,12 +11,12 @@ from Tools.game import Game
 
 class Action(ABC):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__()
         self.src: Tuple[int, int] = src
@@ -54,12 +54,12 @@ class Action(ABC):
 
 class Receive(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -92,12 +92,12 @@ class Receive(Action):
 
 class Serve(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -133,12 +133,12 @@ class Serve(Action):
 
 class Dig(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -168,12 +168,12 @@ class Dig(Action):
 
 class Set(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -197,12 +197,12 @@ class Set(Action):
 
 class Attack(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -227,12 +227,12 @@ class Attack(Action):
 
 class Block(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -257,12 +257,12 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.src = src
@@ -311,9 +311,9 @@ class Substitution(Action):
         team_data.on_bench.add(self.player_out)
 
         # Actualizar el campo de juego
-        self.game.field.update_player_on_field(
-            self.player_out, self.player_in, self.team
-        )
+        self.game.field.update_player_on_field(team_data, self.player_in, self.player_out)
+        print(f"{self.team} sustituye a {self.player_out} por {self.player_in}. Pulsa Enter para continuar...")
+        # input()
 
     def rollback(self):
         team_data = self.game.t1 if self.team == T1 else self.game.t2
@@ -343,9 +343,9 @@ class Timeout(Action):
 
     def execute(self):
         # Registrar el tiempo muerto
-        self.game.register_timeout(self.team)
-
-        # Implementar lógica adicional si es necesario (pausar el juego, etc.)
+        self.game.register_time_out(self.team)
+        print("Tiempo muerto de " + self.team + ". Pulsa Enter para continuar...")
+        # input()
 
     def rollback(self):
         # Revertir el tiempo muerto
@@ -358,8 +358,7 @@ class ManagerNothing(Action):
         super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
-        # No hace nada
-        pass
+        print(f"{self.team} decide no hacer nada")
 
     def rollback(self):
         # No hay nada que revertir
@@ -371,8 +370,8 @@ class ManagerCelebrate(Action):
         super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
-        # Celebrar el punto
-        pass
+        print(f"¡{self.team} celebra el punto! Pulsa Enter para continuar...")
+        # input()
 
     def rollback(self):
         # No hay nada que revertir
@@ -426,6 +425,17 @@ class Dispatch:
             self.move_trigger(action)
         elif isinstance(action, Nothing):
             print(f"{action.team} {action.player} no hizo nada")
+
+        elif isinstance(action, Substitution):
+            print(
+                f"{action.team} {action.player_out} sale y {action.player_in} entra al campo"
+            )
+
+        elif isinstance(action, Timeout):
+            print(f"{action.team} pide tiempo muerto")
+
+        elif isinstance(action, ManagerNothing):
+            print(f"{action.team} no hizo nada")
 
     def move_trigger(self, action: Move):
         pass

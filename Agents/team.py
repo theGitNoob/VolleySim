@@ -1,7 +1,9 @@
 ﻿from typing import Dict
 
+from .actions import Action
 from .manager_agent import Manager
 from .player_agent import Player
+from .simulator_agent import SimulatorAgent
 
 
 class TeamAgent:
@@ -10,5 +12,5 @@ class TeamAgent:
         self.manager: Manager = manager
         self.players: Dict[int, Player] = players
 
-    def select_next_player(self):
-        return self.manager.get_line_up().next_player()
+    def play(self, simulator: SimulatorAgent) -> Action:
+        return self.manager.action(simulator=simulator)
