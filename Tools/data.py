@@ -63,6 +63,7 @@ class TeamData:
         self.data: Dict[int, PlayerData] = {}  # Mapea dorsal a datos del jugador
         self.statistics: StatisticsTeam = StatisticsTeam(name)
         self.players_statistics: Dict[int, StatisticsPlayer] = {}
+        self.time_outs: int = 2
 
         self.on_field: Set[int] = set([])  # Jugadores en cancha (dorsales)
         self.on_bench: Set[int] = set([])  # Jugadores en banca (dorsales)

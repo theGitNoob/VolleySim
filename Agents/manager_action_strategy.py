@@ -7,7 +7,7 @@ from typing import List, Tuple
 from Tools.enum import T1, T2, PlayerRole
 from Tools.game import Game
 
-from .actions import Action, ManagerNothing, Substitution, Timeout
+from .actions import Action, ManagerNothing, Substitution, Timeout, ManagerCelebrate
 from .simulator_agent import SimulatorAgent
 
 MIN = float("-inf")
@@ -37,10 +37,14 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
         for bench_player in team_data.on_bench:
             # Evitar sustituir a un jugador que ya entró por el mismo jugador en el set
             if any(
-                sub
-                for sub in team_data.substitution_history
-                if sub["in"] == bench_player and sub["out"] == player_on_court
+                    sub
+                    for sub in team_data.substitution_history
+                    if sub["in"] == bench_player and sub["out"] == player_on_court
             ):
+                continue
+
+            # Evitar sustituir a 2 jugadores con distintos roles
+            if team_data.data[player_on_court].position != team_data.data[bench_player].position:
                 continue
 
             substitution_action = Substitution(
@@ -54,9 +58,13 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
 def possible_actions(game: Game, team: str) -> List[Action]:
     substitution_options = possible_substitutions(game, team)
 
+    celebration_options = []
+    if game.ball_possession_team == team:
+        celebration_options.append(ManagerCelebrate(team, game))
+
     # Incluir opciones de tiempo muerto
     timeout_options = []
-    if game.can_call_timeout(team):
+    if game.can_call_time_out(team):
         timeout_options.append(Timeout(team, game))
 
     # Incluir acción de no hacer nada
@@ -76,38 +84,39 @@ class ActionRandomStrategy(ManagerActionStrategy):
 
 
 class ActionSimulateStrategy(ManagerActionStrategy):
+
     def action(self, team: str, simulator: SimulatorAgent) -> Action:
         print(
-            f'El entrenador del equipo {"local" if team == T1 else "visitante"} está pensando...'
+            f'El entrenador del equipo {simulator.game.t1.name if team == T1 else simulator.game.t2.name} está pensando...'
         )
 
         actions = possible_actions(simulator.game, team)
-        if not actions:
-            return ManagerNothing(team, simulator.game)
 
-        results = {i: 0 for i in range(len(actions))}
+        results = {i: (0, 0) for i, _ in enumerate(actions)}
 
         for i, action in enumerate(actions):
             for _ in range(CANT_SIMULATIONS):
-                len_stack = len(simulator.dispatch().stack)
-
                 simulator.dispatch().dispatch(action)
                 simulator.simulate_current()
-                simulator.simulate()
+                # simulator.simulate()
 
-                # Evaluar el resultado
-                value = ManagerGameEvaluator().eval(simulator.game, team)
-                results[i] += value
+                r = simulator.game.t1_score - simulator.game.t2_score
+                if team == T2:
+                    r = -r
 
-                # Resetear el estado del simulador
+                c, g = results[i]
+
+                if r > 0:
+                    c += 1
+
+                results[i] = (c, g + r)
+
                 simulator.reset()
                 simulator.reset_current()
-                while len(simulator.dispatch().stack) != len_stack:
-                    simulator.dispatch().rollback()
 
-        # Elegir la acción con el mayor valor acumulado
-        best_action_index = max(results, key=results.get)
-        return actions[best_action_index]
+        action, _ = max(results.items(), key=lambda x: x[1][0] * 1000 + x[1][1])
+
+        return actions[action]
 
 
 class ActionMiniMaxStrategy(ManagerActionStrategy):
@@ -128,12 +137,12 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
         return action if action else ManagerNothing(team, simulator.game)
 
     def maximize(
-        self,
-        simulator: SimulatorAgent,
-        depth: int,
-        alpha: float,
-        beta: float,
-        team: str,
+            self,
+            simulator: SimulatorAgent,
+            depth: int,
+            alpha: float,
+            beta: float,
+            team: str,
     ) -> Tuple[float, Action]:
         if depth == 0 or simulator.game.is_finish():
             return ManagerGameEvaluator().eval(simulator.game, team), None
@@ -166,12 +175,12 @@ class ActionMiniMaxStrategy(ManagerActionStrategy):
         return max_eval, best_action
 
     def minimize(
-        self,
-        simulator: SimulatorAgent,
-        depth: int,
-        alpha: float,
-        beta: float,
-        team: str,
+            self,
+            simulator: SimulatorAgent,
+            depth: int,
+            alpha: float,
+            beta: float,
+            team: str,
     ) -> Tuple[float, Action]:
         if depth == 0 or simulator.game.is_finish():
             return ManagerGameEvaluator().eval(simulator.game, team), None
@@ -216,17 +225,3 @@ class ManagerGameEvaluator:
             if team == T1
             else (game.t2_score - game.t1_score)
         )
-
-        # Penalización por fatiga
-        fatigue_penalty = self.calculate_fatigue_penalty(game, team)
-
-        # Evaluación total
-        return score_diff - fatigue_penalty
-
-    def calculate_fatigue_penalty(self, game: Game, team: str) -> float:
-        team_data = game.t1 if team == T1 else game.t2
-        total_stamina = sum(player.stamina for player in team_data.data.values())
-        average_stamina = total_stamina / len(team_data.data)
-
-        # Retornar una penalización basada en la fatiga (menor resistencia implica mayor penalización)
-        return (100 - average_stamina) / 10  # Ajustar el divisor según sea necesario

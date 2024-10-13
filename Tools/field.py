@@ -1,6 +1,7 @@
 ﻿import math
 from typing import List, Optional, Tuple
 
+from Tools.data import TeamData
 from Tools.enum import T1, T2
 from Tools.line_up import LineUp
 
@@ -11,14 +12,14 @@ class GridField:
     """
 
     def __init__(
-        self,
-        row: int,
-        col: int,
-        player: int = -1,
-        ball: bool = False,
-        team: str = "",
-        is_net: bool = False,
-        position: int = 0,
+            self,
+            row: int,
+            col: int,
+            player: int = -1,
+            ball: bool = False,
+            team: str = "",
+            is_net: bool = False,
+            position: int = 0,
     ) -> None:
         self.row: int = row
         self.col: int = col
@@ -32,8 +33,8 @@ class GridField:
         return self.player == -1
 
     def is_contiguous(self, g: "GridField"):
-        return (abs(self.row - g.row) == 1 and abs(self.col - g.col) == 1) or (
-            abs(self.row - g.row) + abs(self.col - g.col) == 1
+        return (1 < abs(self.row - g.row) <= 2 and 1 < abs(self.col - g.col) <= 2) or (
+                abs(self.row - g.row) + abs(self.col - g.col) == 1
         )
 
     def str_code(self) -> str:
@@ -81,7 +82,7 @@ class Field:
             self.grid[self.net_row][c].is_net = True
 
     def conf_line_ups(
-        self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
+            self, line_up_h: LineUp, line_up_a: LineUp, server_team: str | None = None
     ):
         for grid in self.grid:
             for g in grid:
@@ -112,7 +113,7 @@ class Field:
             self.grid[r][c].position = pos_number  # Posición de rotación
 
     def find_player_in_position(
-        self, position_number: int, team: str
+            self, position_number: int, team: str
     ) -> Optional[GridField]:
         """
         Encuentra al jugador en una posición de rotación específica para un equipo.
@@ -136,7 +137,7 @@ class Field:
 
         # Detectar si la pelota cruzó la red
         ball_crossed_net = (x_src < self.net_row <= x_dest) or (
-            x_src > self.net_row >= x_dest
+                x_src > self.net_row >= x_dest
         )
 
         if ball_crossed_net:
@@ -240,3 +241,10 @@ class Field:
         field_str += "_" * (self.columns * 3 + 6) + "\n"
         field_str += "   " + "|".join(f"{c + 1:02}" for c in range(self.columns)) + "\n"
         return field_str
+
+    def update_player_on_field(self, team_data: TeamData, player_in: int, player_out: int):
+        for grid in self.grid:
+            for g in grid:
+                if g.player == player_out:
+                    g.player = player_in
+                    break

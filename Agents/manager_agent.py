@@ -23,6 +23,3 @@ class Manager:
 
     def action(self, simulator: SimulatorAgent) -> Action:
         return self.action_strategy.action(self.team, simulator)
-
-    def heuristic_action(self, simulator: SimulatorAgent) -> Action:
-        return ActionRandomStrategy().action(self.team, simulator)

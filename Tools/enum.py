@@ -13,7 +13,7 @@ class PlayerRole(Enum):
     SUBSTITUTE = "SUB"  # Suplente
 
 
-dictT1 = {
+dict_t1 = {
     1: (1, 1),
     5: (1, 7),
     3: (8, 4),
@@ -22,7 +22,7 @@ dictT1 = {
     6: (4, 4),
 }
 
-dictT2 = {
+dict_t2 = {
     1: (17, 1),
     2: (17, 7),
     3: (10, 4),

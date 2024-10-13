@@ -203,7 +203,7 @@ class Simulator:
         self.game.instance += 1
 
         # Simular decisiones de los entrenadores
-        # self.simulate_managers(mask)
+        self.simulate_managers(set())
 
     def get_next_player_actions(
         self, player: int, team: str, mask: Set[Tuple[int, str]]
@@ -228,17 +228,17 @@ class Simulator:
             return self.team2.players[player_number].play(sim)
 
     def simulate_managers(self, mask: Set[Tuple[int, str]]):
-        if self.game.instance % INTERVAL_MANAGER == 0:
+        if self.game.instance % INTERVAL_MANAGER == 0 and self.game.has_ball_landed:
             if (T1, "manager") not in mask:
                 mask.add((T1, "manager"))
                 sim = self.get_simulator(self.team1.manager, T1, mask)
-                action = self.team1.manager.decide_action(sim)
+                action = self.team1.play(sim)
                 self.dispatch.dispatch(action)
 
             if (T2, "manager") not in mask:
                 mask.add((T2, "manager"))
                 sim = self.get_simulator(self.team2.manager, T2, mask)
-                action = self.team2.manager.decide_action(sim)
+                action = self.team2.play(sim)
                 self.dispatch.dispatch(action)
 
     def get_simulator(self, manager: Manager, team: str, mask: Set[Tuple[int, str]]):

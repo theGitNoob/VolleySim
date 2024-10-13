@@ -46,7 +46,7 @@ class Player:
         visible_grids: List[GridField], p_grid: GridField
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
-            if p_grid.is_contiguous(g) and g.is_empty():
+            if 1 < Field.distance((g.row, g.col), (p_grid.row, p_grid.col)) <= 2 and g.is_empty() and g.team == p_grid.team:
                 yield g
 
     def friendly_grids(

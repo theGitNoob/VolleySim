@@ -53,6 +53,6 @@ def clear_console():
 
 
 for s in sim.simulate():
-    time.sleep(0.5)
+    # time.sleep(0.5)
     clear_console()
     print(s)

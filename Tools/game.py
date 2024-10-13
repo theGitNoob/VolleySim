@@ -2,7 +2,7 @@ from typing import Tuple
 
 from Tools.data import TeamData
 from Tools.enum import T1, T2
-from Tools.field import Field
+from Tools.field import Field, GridField
 from Tools.line_up import LineUp
 from Tools.utils import coin_toss
 
@@ -69,8 +69,8 @@ class Game:
 
     def has_set_ended(self) -> bool:
         if (
-            self.t1_score >= self.points_to_win_set
-            or self.t2_score >= self.points_to_win_set
+                self.t1_score >= self.points_to_win_set
+                or self.t2_score >= self.points_to_win_set
         ) and abs(self.t1_score - self.t2_score) >= 2:
             return True
         return False
@@ -199,23 +199,17 @@ class Game:
         player_grid = self.field.find_player(dorsal, team)
         ball_grid = self.field.find_ball()
         return (
-            self.field.int_distance(
-                (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
-            )
-            <= 2
+                self.field.int_distance(
+                    (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
+                )
+                <= 2
         )
 
     def is_opponent_attacking(self, team: str) -> bool:
         return self.last_team_touched != team
 
-    def ball_in_opponent_court(self) -> bool:
-        ball_grid = self.field.find_ball()
-        return (ball_grid.row < self.field.net_row and self.serving_team == T1) or (
-            ball_grid.row >= self.field.net_row and self.serving_team == T2
-        )
-
-    def ball_in_our_court(self) -> bool:
-        return not self.ball_in_opponent_court()
+    def ball_in_our_court(self, team: str) -> bool:
+        return self.ball_possession_team == team
 
     def revert_point(self, team: str):
         if team == T1:
@@ -278,3 +272,53 @@ class Game:
 
     def move_ball(self, src: Tuple[int, int], dest: Tuple[int, int]) -> bool:
         return self.field.move_ball(src, dest)
+
+    @staticmethod
+    def get_opponent_team(team: str) -> str:
+        return T1 if team == T2 else T2
+
+    def role_position(self, role: str, team: str, destination: Tuple[int, int] = (0, 0)) -> GridField:
+        min_distance = float("inf")
+        role_position = None
+        counter = 0
+        if role == 'OH':
+            for row in self.field.grid:
+                for grid in row:
+                    if grid.player != -1 and grid.team == team:
+                        player_role = self.t1.get_player_role(grid.player) if team == T1 else self.t2.get_player_role(
+                            grid.player)
+                        if player_role == role:
+                            counter += 1
+                            distance = self.field.distance(destination, (grid.row, grid.col))
+                            if distance < min_distance:
+                                min_distance = distance
+                                role_position = grid
+                            if counter == 2:
+                                return role_position
+
+        for row in self.field.grid:
+            for grid in row:
+                if grid.player != -1 and grid.team == team:
+                    player_role = self.t1.get_player_role(grid.player) if team == T1 else self.t2.get_player_role(
+                        grid.player)
+                    if player_role == role:
+                        return grid
+
+    def closest_enemy_distance(self, src: Tuple[int, int], team: str) -> float:
+        min_distance = float("inf")
+        for row in self.field.grid:
+            for grid in row:
+                if grid.team != team:
+                    distance = self.field.distance(src, (grid.row, grid.col))
+                    if distance < min_distance:
+                        min_distance = distance
+        return min_distance
+
+    def can_call_time_out(self, team: str) -> bool:
+        return self.t1.time_outs > 0 if team == T1 else self.t2.time_outs > 0
+
+    def register_time_out(self, team: str) -> None:
+        if team == T1:
+            self.t1.time_outs -= 1
+        else:
+            self.t2.time_outs -= 1

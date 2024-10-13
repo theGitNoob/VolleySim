@@ -1,7 +1,7 @@
 ﻿from abc import ABC
 from typing import Dict, Optional
 
-from Tools.enum import PlayerRole, dictT1, dictT2
+from Tools.enum import PlayerRole, dict_t1, dict_t2
 from Tools.player_data import PlayerData
 
 # Estrategias
@@ -12,7 +12,7 @@ NORMAL = "NORMAL"
 
 class LineUpGrid:
     def __init__(
-        self, row: int, col: int, position_number: int, player_role: str
+            self, row: int, col: int, position_number: int, player_role: str
     ) -> None:
         self.row: int = row  # Posición en la cancha (fila)
         self.col: int = col  # Posición en la cancha (columna)
@@ -25,15 +25,15 @@ class LineUpGrid:
 
     def conf_player(self, player: PlayerData):
         in_role = (
-            player.position == self.player_role or self.player_role in player.roles
+                player.position == self.player_role or self.player_role in player.roles
         )
         self._set_statistics(player, in_role)
         self.player = player.dorsal  # Asignar dorsal del jugador
 
     def set_statistics(self, player_data: PlayerData) -> None:
         in_role = (
-            player_data.position == self.player_role
-            or self.player_role in player_data.roles
+                player_data.position == self.player_role
+                or self.player_role in player_data.roles
         )
         self._set_statistics(player_data, in_role)
 
@@ -76,7 +76,7 @@ class LineUp(ABC):
         # Rotar posiciones en sentido de las agujas del reloj según las reglas del voleibol
         position_numbers = [1, 2, 3, 4, 5, 6]
         rotated_positions = (
-            position_numbers[-1:] + position_numbers[:-1]
+                position_numbers[-1:] + position_numbers[:-1]
         )  # Mover el último al inicio
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):
@@ -84,14 +84,14 @@ class LineUp(ABC):
                 if grid.position_number == old_pos_num:
                     grid.position_number = new_pos_num
                     grid.col = (
-                        dictT1[new_pos_num][1]
+                        dict_t1[new_pos_num][1]
                         if team == "T1"
-                        else dictT2[new_pos_num][1]
+                        else dict_t2[new_pos_num][1]
                     )
                     grid.row = (
-                        dictT1[new_pos_num][0]
+                        dict_t1[new_pos_num][0]
                         if team == "T1"
-                        else dictT2[new_pos_num][0]
+                        else dict_t2[new_pos_num][0]
                     )
                     temp_line_up[new_pos_num] = grid
                     break
@@ -112,6 +112,13 @@ class LineUp(ABC):
             if grid.player is not None:
                 return grid.player
         raise ValueError("No hay jugadores en la alineación.")
+
+    def substitute_player(self, player_out: int, player_in: int) -> None:
+        for grid in self.line_up.values():
+            if grid.player == player_out:
+                grid.player = player_in
+                return
+        raise ValueError(f"No se encontró al jugador {player_out} en la alineación.")
 
 
 class StandardVolleyballLineUp(LineUp):
