@@ -34,14 +34,17 @@ class Game:
         self.ball_possession_team = self.serving_team
         self.rally_over = False
         self.has_ball_landed = False
+        self.points_history = []
 
     def score_point(self, scorer_team: str):
         self.ball_possession_team = scorer_team
 
         if scorer_team == T1:
             self.t1_score += 1
+            self.points_history.append({"team": T1, "score": self.t1_score, "set": self.current_set})
         else:
             self.t2_score += 1
+            self.points_history.append({"team": T2, "score": self.t2_score, "set": self.current_set})
 
         # Cambiar servicio si el equipo anotó es diferente al que servía
         if self.serving_team != scorer_team:

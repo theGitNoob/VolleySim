@@ -562,6 +562,8 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             action.game.rally_over = True
         else:
             action.game.has_ball_landed = False
@@ -574,6 +576,8 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             action.game.rally_over = True
         else:
             ball_crossed_net = action.game.field.move_ball(action.src, action.dest)
@@ -588,6 +592,8 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             action.game.rally_over = True
 
         else:
@@ -600,6 +606,8 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             action.game.rally_over = True
 
         else:
@@ -612,7 +620,8 @@ class Dispatch:
 
     def block_trigger(self, action: Block):
         if not action.success:
-            # Bloqueo fallido, la bola pasa
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             return
         else:
             action.game.has_ball_landed = False
@@ -626,6 +635,8 @@ class Dispatch:
         action.game.last_team_touched = action.team
         action.game.general_touches += 1
         if not action.success:
+            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player.errors += 1
             action.game.rally_over = True
         else:
             action.game.has_ball_landed = False

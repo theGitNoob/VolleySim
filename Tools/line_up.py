@@ -143,3 +143,27 @@ class StandardVolleyballLineUp(LineUp):
             for grid in positions.values():
                 grid.row = self.court_length - grid.row
         return positions
+
+
+class BestLineUp(LineUp):
+    def __init__(self, team_side: str) -> None:
+        super().__init__()
+        self.court_length = 18
+        self.line_up = self._create_positions(team_side)
+
+    def _create_positions(self, team_side: str) -> Dict[int, LineUpGrid]:
+        # Posiciones base (Equipo 1)
+        positions = {
+            3: LineUpGrid(7, 5, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
+            5: LineUpGrid(1, 6, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 2
+            6: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
+            1: LineUpGrid(2, 2, 1, PlayerRole.SETTER),  # Posición 4
+            2: LineUpGrid(6, 2, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 5
+            4: LineUpGrid(5, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
+        }
+
+        if team_side == "T2":
+            # Reflejar las posiciones en el eje vertical
+            for grid in positions.values():
+                grid.row = self.court_length - grid.row
+        return positions
