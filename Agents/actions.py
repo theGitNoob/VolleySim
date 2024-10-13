@@ -9,6 +9,21 @@ from Tools.enum import T1, T2
 from Tools.game import Game
 
 
+def recursive_update(original, backup):
+    for key, value in backup.__dict__.items():
+        if isinstance(value, (int, float, str, bool, tuple)):
+            setattr(original, key, value)
+        elif isinstance(value, list):
+            setattr(original, key, [
+                recursive_update(orig, back) if hasattr(orig, '__dict__') else back
+                for orig, back in zip(getattr(original, key), value)
+            ])
+        elif hasattr(value, '__dict__'):
+            recursive_update(getattr(original, key), value)
+        else:
+            setattr(original, key, copy.deepcopy(value))
+
+
 class Action(ABC):
     def __init__(
             self,
@@ -80,13 +95,17 @@ class Receive(Action):
 
     def rollback(self):
         # Revertir estadísticas
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.receives -= 1
         player_stats.receives -= 1
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Serve(Action):
@@ -117,14 +136,18 @@ class Serve(Action):
 
     def rollback(self):
         # Revertir estadísticas
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.serves -= 1
         player_stats.serves -= 1
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
 
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Dig(Action):
@@ -151,14 +174,18 @@ class Dig(Action):
         self.success = random() <= digging_skill
 
     def rollback(self):
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.digs -= 1
         player_stats.digs -= 1
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
 
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Set(Action):
@@ -184,14 +211,18 @@ class Set(Action):
         self.success = random() <= setting_skill
 
     def rollback(self):
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.sets -= 1
         player_stats.sets -= 1
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
 
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Attack(Action):
@@ -218,14 +249,18 @@ class Attack(Action):
         self.success = random() <= attacking_skill
 
     def rollback(self):
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.attacks -= 1
         player_stats.attacks -= 1
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
 
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Block(Action):
@@ -242,6 +277,7 @@ class Block(Action):
 
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
+
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
@@ -252,14 +288,19 @@ class Block(Action):
         self.success = random() <= blocking_skill
 
     def rollback(self):
+        recursive_update(self.game, self.game_copy)
+        return
         team_stats = self.get_statistics()
         player_stats = self.get_player_statistics()
 
         team_stats.blocks -= 1
         player_stats.blocks -= 1
 
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        if self.success:
+            self.game.field.move_ball(self.dest, self.src)
+
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
 
 
 class Move(Action):
@@ -280,8 +321,12 @@ class Move(Action):
         self.game.field.move_player(self.src, self.dest)
 
     def rollback(self):
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
+        recursive_update(self.game, self.game_copy)
+        return
+        # self.game.field.move_player(self.dest, self.src)
+
         # self.game.field.move_player(self.dest, self.src)
 
 
@@ -323,30 +368,33 @@ class Substitution(Action):
 
         # Actualizar el campo de juego
         self.game.field.update_player_on_field(self.player_in, self.player_out)
-        print(f"{self.team} sustituye a {self.player_out} por {self.player_in}. Pulsa Enter para continuar...")
-        # input()
 
     def rollback(self):
-        self.game.__dict__.update(self.game_copy.__dict__)
-        self.game_copy = None
-        # team_data = self.game.t1 if self.team == T1 else self.game.t2
-        # 
-        # # Revertir la sustitución
-        # team_data.substitution_history.pop()
-        # 
-        # # Actualizar el line-up
-        # team_data.line_up.substitute_player(self.player_in, self.player_out)
-        # 
-        # # Actualizar las listas de jugadores en cancha y en banca
-        # team_data.on_field.remove(self.player_in)
-        # team_data.on_field.add(self.player_out)
-        # team_data.on_bench.remove(self.player_out)
-        # team_data.on_bench.add(self.player_in)
+        # if self.game_copy is not None:
+        recursive_update(self.game, self.game_copy)
+        # return
+        # self.game.__dict__.update(self.game_copy.__dict__)
+        # self.game_copy = None
+        # print('se han deshecho los cambios hasta este punto')
+        # return
+        team_data = self.game.t1 if self.team == T1 else self.game.t2
 
-        # # Actualizar el campo de juego
-        # self.game.field.update_player_on_field(
-        #     self.player_out, self.player_in
-        # )
+        # Revertir la sustitución
+        team_data.substitution_history.pop()
+
+        # Actualizar el line-up
+        team_data.line_up.substitute_player(self.player_in, self.player_out)
+
+        # Actualizar las listas de jugadores en cancha y en banca
+        team_data.on_field.remove(self.player_in)
+        team_data.on_field.add(self.player_out)
+        team_data.on_bench.remove(self.player_out)
+        team_data.on_bench.add(self.player_in)
+
+        # Actualizar el campo de juego
+        self.game.field.update_player_on_field(
+            self.player_out, self.player_in
+        )
 
 
 # Definición de la acción Timeout
