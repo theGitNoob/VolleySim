@@ -76,7 +76,7 @@ class Game:
         return False
 
     def end_set(self):
-        print(str(self.t1_score) + " **************** " + str(self.t2_score))
+        # print(str(self.t1_score) + " **************** " + str(self.t2_score))
         if self.t1_score > self.t2_score:
             self.t1_sets += 1
         else:
