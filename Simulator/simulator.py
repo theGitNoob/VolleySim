@@ -49,7 +49,7 @@ class VolleyballSimulation:
         simulator.start_match()
 
         while not self.game.is_finish():
-            simulator.simulate_rally()
+            simulator.simulate_rally(set([]))
 
         return simulator.game.to_json()
 
