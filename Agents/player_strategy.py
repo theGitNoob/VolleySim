@@ -2,17 +2,17 @@
 from typing import Callable
 
 from .actions import *
-from .behavior import (Behavior, Defensive, Ofensive, RandomBehavior,
-                       ReturnToPosition)
+from .bdiagent import BdiAgent
+from .behavior import Behavior, RandomBehavior, Defensive, ReturnToPosition, Ofensive
 from .simulator_agent import SimulatorAgent
 
 
 class PlayerStrategy(ABC):
     @abstractmethod
     def select_action(
-        self,
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
+            self,
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
     ) -> Action:
         pass
 
@@ -23,7 +23,7 @@ class BehaviorStrategy(ABC):
         self.behaviors: List[Behavior] = []
 
     def select_action_behavior(
-        self, actions: List[Action], simulator: SimulatorAgent
+            self, actions: List[Action], simulator: SimulatorAgent
     ) -> Action:
         return max(
             actions,
@@ -34,64 +34,33 @@ class BehaviorStrategy(ABC):
 class VolleyballStrategy(PlayerStrategy):
     def __init__(self) -> None:
         super().__init__()
-        self.strategies = {"defensor": DefensorStrategy(), "ofensor": OfensorStrategy()}
 
     def select_action(
-        self,
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
+            self,
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
     ) -> Action:
-        actions = possible_actions(simulator.game)
-        game = simulator.game
-        player = actions[0].player
-        team = actions[0].team
-        ball_in_our_court = simulator.game.ball_in_our_court(team)
-
-        # Obtener el rol del jugador
-        if team == T1:
-            player_role = game.t1.get_player_role(player)
-        else:
-            player_role = game.t2.get_player_role(player)
-
-        if ball_in_our_court:
-            if Serve in actions:
-                return self.strategies["ofensor"].select_action_behavior(
-                    actions, simulator
-                )
-            if player_role == "O":
-                return self.strategies["ofensor"].select_action_behavior(
-                    actions, simulator
-                )
-            else:
-                return self.strategies["defensor"].select_action_behavior(
-                    actions, simulator
-                )
-        else:
-            return self.strategies["defensor"].select_action_behavior(
-                actions, simulator
-            )
+        team = possible_actions(simulator.game)[0].team
+        agent = BdiAgent(simulator.game)
+        return agent.select_action(possible_actions, team)
 
 
 class DefensorStrategy(BehaviorStrategy):
     def __init__(self) -> None:
         super().__init__()
-        self.behaviors: List[Behavior] = [
-            Defensive(importance=1.8),
-            ReturnToPosition(importance=0.5),
-            Ofensive(importance=0.2),
-            RandomBehavior(importance=0.1),
-        ]
+        self.behaviors: List[Behavior] = [Defensive(importance=1.8),
+                                          ReturnToPosition(importance=0.5),
+                                          Ofensive(importance=0.2),
+                                          RandomBehavior(importance=0.1)]
 
 
 class OfensorStrategy(BehaviorStrategy):
     def __init__(self) -> None:
         super().__init__()
-        self.behaviors: List[Behavior] = [
-            Ofensive(importance=1.8),
-            ReturnToPosition(importance=0.5),
-            Defensive(importance=0.2),
-            RandomBehavior(importance=0.1),
-        ]
+        self.behaviors: List[Behavior] = [Ofensive(importance=1.8),
+                                          ReturnToPosition(importance=0.5),
+                                          Defensive(importance=0.2),
+                                          RandomBehavior(importance=0.1)]
 
 
 class RandomStrategy(BehaviorStrategy, PlayerStrategy):
@@ -100,9 +69,9 @@ class RandomStrategy(BehaviorStrategy, PlayerStrategy):
         self.behaviors: List[Behavior] = [RandomBehavior()]
 
     def select_action(
-        self,
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
+            self,
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
     ) -> Action:
         # TODO: check if this is correct
         # return a random action in all the possible actions
@@ -120,15 +89,15 @@ class MinimaxStrategy(PlayerStrategy):
         self.evaluator = GameEvaluator()
 
     def select_action(
-        self,
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
+            self,
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
     ) -> Action:
         actions = possible_actions(simulator.game)
 
         team = actions[0].team
         player = actions[0].player
-        print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
+        # print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
 
         depth = 1
 
@@ -139,12 +108,12 @@ class MinimaxStrategy(PlayerStrategy):
         return action
 
     def best_function(
-        self,
-        actions: List[Action],
-        possible_actions: Callable[[Game], List[Action]],
-        simulator: SimulatorAgent,
-        depth: int,
-        first: bool = False,
+            self,
+            actions: List[Action],
+            possible_actions: Callable[[Game], List[Action]],
+            simulator: SimulatorAgent,
+            depth: int,
+            first: bool = False,
     ) -> Tuple[float, Action | None]:
         if depth == 0 or simulator.game.is_finish():
             return self.evaluation(simulator.game, actions[0].team)
