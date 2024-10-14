@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "volleysim"
+version = "0.1.0"
+description = ""
+authors = ["Rafael Acosta <theGitNoob@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = "^2.9.2"
+scikit-fuzzy = "^0.5.0"
+pandas = "^2.2.3"
+google-generativeai = "^0.8.2"
+python-dotenv = "^1.0.1"
+prettytable = "^3.11.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pre-commit = "^3.8.0"
+mypy = "^1.11.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
