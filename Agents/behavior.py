@@ -46,7 +46,6 @@ class ReturnToPosition(Behavior):
 
 class Defensive(Behavior):
     def eval(self, action: Action, game: Game) -> float:
-        source = action.src
         destination = action.dest
         ball_position = game.field.find_ball()
         self_team = action.team
