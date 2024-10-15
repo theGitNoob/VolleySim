@@ -73,10 +73,7 @@ class RandomStrategy(BehaviorStrategy, PlayerStrategy):
             possible_actions: Callable[[Game], List[Action]],
             simulator: SimulatorAgent,
     ) -> Action:
-        # TODO: check if this is correct
-        # return a random action in all the possible actions
         return choice(possible_actions(simulator.game))
-        # return self.select_action_behavior(possible_actions(simulator.game), simulator)
 
 
 MIN = -10000000000
@@ -95,8 +92,6 @@ class MinimaxStrategy(PlayerStrategy):
     ) -> Action:
         actions = possible_actions(simulator.game)
 
-        team = actions[0].team
-        player = actions[0].player
         # print(f'{"T1" if team == T1 else "T2"}-{player} player is thinking')
 
         depth = 1
@@ -159,32 +154,25 @@ class MinimaxStrategy(PlayerStrategy):
 
 class GameEvaluator:
     def eval(self, game: Game, team: str) -> float:
-        """
-        Evalúa el estado actual del juego desde la perspectiva del equipo especificado.
-        """
         opponent_team = T1 if team == T2 else T2
 
-        # Diferencia de puntos
         score_diff = game.get_team_score(team) - game.get_team_score(opponent_team)
 
         set_diff = game.get_team_sets(team) - game.get_team_score(opponent_team)
 
-        # Posesión de la pelota
         ball_possession = 1 if game.ball_possession_team == team else -1
 
-        # Toques restantes
         touches_left = 3 - game.touches[team]
 
-        # Ubicación de la pelota
         ball_on_our_side = 1 if game.is_ball_on_our_side(team) else -1
 
         # Valor total
         value = (
-            set_diff * 100000
-            + score_diff * 100
-            + ball_possession * 50
-            + touches_left * 20
-            + ball_on_our_side * 30
+                set_diff * 100000
+                + score_diff * 100
+                + ball_possession * 50
+                + touches_left * 20
+                + ball_on_our_side * 30
         )
 
         return value

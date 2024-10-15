@@ -1,5 +1,4 @@
-﻿# simulator.py
-from typing import Generator, List, Set, Tuple
+﻿from typing import Generator, List, Set, Tuple
 
 from prettytable import PrettyTable
 
@@ -13,11 +12,8 @@ from Tools.enum import T1, T2
 from Tools.game import Game
 from Tools.utils import coin_toss
 
-# Ajuste de constantes para el voleibol
-CANT_RALLIES = 180  # Número máximo de rallies a simular
-INTERVAL_MANAGER = (
-    1  # Intervalo para decisiones del entrenador (sustituciones, tiempos muertos, etc.)
-)
+CANT_RALLIES = 180
+INTERVAL_MANAGER = 1
 
 
 class VolleyballSimulation:
@@ -43,7 +39,6 @@ class VolleyballSimulation:
             field_str = str(self.game.field)
             statistics = self.game_statistics()
             yield field_str + "\n" + statistics
-            # sleep(1)
 
     def simulate_and_save(self):
         simulator = Simulator(self.t1, self.t2, self.game)
@@ -79,7 +74,7 @@ class Simulator:
         self.stack: List[int] = []
         self.dispatch = Dispatch(
             self.game
-        )  # Ahora Dispatch recibe la instancia de Game
+        )
 
     def start_match(self):
         self.game.instance = 0
@@ -89,7 +84,6 @@ class Simulator:
 
         self.game.conf_line_ups(t1_lineup, t2_lineup)
 
-        # Determinar equipo que sirve primero
         if coin_toss():
             self.game.serving_team = T1
             self.game.ball_possession_team = T1
@@ -111,7 +105,6 @@ class Simulator:
     def simulate_rally(
         self,
         mask: Set[Tuple[int, str]],
-        heuristic_manager: bool = False,
         heuristic_player: bool = False,
     ):
         self.stack.append(len(self.dispatch.stack))
@@ -192,7 +185,6 @@ class Simulator:
             ):
                 ball_touched = True
 
-        # chequear si hubo punto o la pelota tocó el suelo
         if self.game.has_ball_landed:
             ball_position = self.game.field.find_ball()
             scorer_team = T1 if ball_position.team == T2 else T2
@@ -200,14 +192,11 @@ class Simulator:
         elif self.game.rally_over:
             self.game.score_point(self.game.last_team_touched)
 
-        # Incrementar el contador de instancias (rallies)
         self.game.instance += 1
 
-        # Simular decisiones de los entrenadores
         self.simulate_managers(mask)
 
     def get_player_action(self, team: str, player_number: int, sim: SimulatorAgent):
-        # Obtener la acción que el jugador realizará
         if team == T1:
             return self.team1.players[player_number].play(sim)
         else:
@@ -297,7 +286,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
     def simulate(self):
         while not self.simulator.game.is_finish():
             self.simulator.simulate_rally(
-                set([]), heuristic_manager=True, heuristic_player=True
+                set([]), heuristic_player=True
             )
 
     def reset(self):
@@ -306,7 +295,7 @@ class SimulatorActionSimulateManager(SimulatorAgent):
 
     def simulate_current(self):
         self.simulator.simulate_rally(
-            self.mask.copy(), heuristic_manager=True, heuristic_player=True
+            self.mask.copy(), heuristic_player=True
         )
 
     def reset_current(self):
@@ -331,7 +320,7 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
 
     def simulate(self):
         self.simulator.simulate_rally(
-            {(self.player, self.team)}, heuristic_manager=True, heuristic_player=True
+            {(self.player, self.team)}, heuristic_player=True
         )
 
     def reset(self):
@@ -339,7 +328,7 @@ class SimulatorActionSimulatePlayer(SimulatorAgent):
 
     def simulate_current(self):
         self.simulator.simulate_rally(
-            self.mask.copy(), heuristic_manager=True, heuristic_player=True
+            self.mask.copy(), heuristic_player=True
         )
 
     def reset_current(self):

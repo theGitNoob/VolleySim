@@ -1,6 +1,4 @@
-﻿# behavior.py
-
-import random
+﻿import random
 
 from Tools.enum import T1, dict_t1, dict_t2
 from Tools.field import GridField
@@ -54,7 +52,6 @@ class Defensive(Behavior):
 
         value = 0
 
-        # Si el equipo tiene la posesión del balón
         if ball_position.team == self_team:
             if isinstance(action, Block):
                 neighbor_opponents = 0
@@ -90,7 +87,6 @@ class Defensive(Behavior):
                 value += 1 / ((distance_to_attack + closest_enemy_distance) + 1)
 
         else:
-            # El equipo contrario tiene la posesión, acciones defensivas
             if isinstance(action, Move) or isinstance(action, Nothing):
                 if player.position == "L":
                     distance = game.field.distance(destination, dict_t1[5])

@@ -35,7 +35,6 @@ class Player:
 
     def get_perceptions(self, game: Game) -> Tuple[List[GridField], GridField]:
         p_grid: GridField = game.field.find_player(self.dorsal, self.team)
-        # visible_grids: List[GridField] = game.field.neighbor_grids(p_grid, 100)
         visible_grids: list[GridField] = [
             grid for row in game.field.grid for grid in row
         ]
@@ -78,7 +77,6 @@ class Player:
         if game.last_player_touched == self.dorsal and game.general_touches != 0:
             return actions
 
-        # Si es nuestro saque solo agregamos la acción de saque al jugador que tiene el saque
         if game.is_our_serve(self.team) and game.general_touches == 0:
             if game.is_player_server(self.dorsal):
                 actions.pop()
@@ -154,7 +152,6 @@ class Player:
                         )
 
             else:
-                # El jugador puede moverse dentro de la cancha
                 for grid in self.empty_adjacent_grids(visible_grids, p_grid):
                     dest = (grid.row, grid.col)
                     actions.append(

@@ -6,10 +6,6 @@ from Tools.line_up import LineUp
 
 
 class GridField:
-    """
-    Representa una celda en el campo de voleibol.
-    """
-
     def __init__(
         self,
         row: int,
@@ -43,9 +39,9 @@ class GridField:
 
     def __str__(self) -> str:
         if self.is_net:
-            return "||"  # Representa la red
+            return "░░"
         elif self.ball:
-            return "🏐"  # Representa la pelota de voleibol
+            return "🏐"
         elif self.player != -1:
             color = "\033[34m" if self.team == T1 else "\033[31m"
             return f"{color}{self.player:02}\033[0m"
@@ -59,10 +55,6 @@ class GridField:
 
 
 class Field:
-    """
-    Gestiona el campo de juego y las operaciones relacionadas.
-    """
-
     def __init__(self, rows: int = 19, columns: int = 9):
         self.rows = rows
         self.columns = columns
@@ -93,16 +85,14 @@ class Field:
                 g.position = 0
                 g.ball = False
 
-        # Configurar alineaciones para el equipo de casa
         for pos_number, grid_info in line_up_h.line_up.items():
             if pos_number == 1 and server_team == T1:
                 self.grid[grid_info.row][grid_info.col].ball = True
             r, c, player_id = grid_info.row, grid_info.col, grid_info.player
             self.grid[r][c].player = player_id
             self.grid[r][c].team = T1
-            self.grid[r][c].position = pos_number  # Posición de rotación
+            self.grid[r][c].position = pos_number
 
-        # Configurar alineaciones para el equipo visitante
         for pos_number, grid_info in line_up_a.line_up.items():
             if pos_number == 1 and server_team == T2:
                 self.grid[grid_info.row][grid_info.col].ball = True
@@ -114,9 +104,6 @@ class Field:
     def find_player_in_position(
         self, position_number: int, team: str
     ) -> Optional[GridField]:
-        """
-        Encuentra al jugador en una posición de rotación específica para un equipo.
-        """
         for row in self.grid:
             for grid in row:
                 if grid.team == team and grid.position == position_number:

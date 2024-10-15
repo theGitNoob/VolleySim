@@ -1,4 +1,3 @@
-# load some csv file
 import csv
 from collections import defaultdict
 

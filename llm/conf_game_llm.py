@@ -1,5 +1,3 @@
-# configuracion.py
-
 from typing import Tuple
 
 from pandas import DataFrame

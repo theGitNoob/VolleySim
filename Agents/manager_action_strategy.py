@@ -1,6 +1,4 @@
-﻿# manager_action_strategy.py
-
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 from random import choice
 from typing import List
 
@@ -13,7 +11,7 @@ from .simulator_agent import SimulatorAgent
 MIN = float("-inf")
 MAX = float("inf")
 
-CANT_SIMULATIONS = 1  # Número de simulaciones a realizar
+CANT_SIMULATIONS = 1
 
 
 def possible_substitutions(game: Game, team: str) -> List[Action]:
@@ -21,17 +19,14 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
 
     team_data = game.t1 if team == T1 else game.t2
 
-    max_substitutions_per_set = 2  # Máximo de sustituciones por set en voleibol
+    max_substitutions_per_set = 2
     if len(team_data.substitution_history) >= max_substitutions_per_set:
         return []
 
-    # Iterar sobre los jugadores en cancha
     for position_number, player_info in team_data.line_up.line_up.items():
         player_on_court = player_info.player
 
-        # Generar posibles sustituciones con jugadores en el banco
         for bench_player in team_data.on_bench:
-            # Evitar sustituir a un jugador que ya entró por el mismo jugador en el set
             if any(
                     sub
                     for sub in team_data.substitution_history
@@ -39,7 +34,6 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
             ):
                 continue
 
-            # Evitar sustituir a 2 jugadores con distintos roles
             if (
                     team_data.data[player_on_court].position
                     != team_data.data[bench_player].position
@@ -61,12 +55,10 @@ def possible_actions(game: Game, team: str) -> List[Action]:
     if game.ball_possession_team == team:
         celebration_options.append(ManagerCelebrate(team, game))
 
-    # Incluir opciones de tiempo muerto
     timeout_options = []
     if game.can_call_time_out(team):
         timeout_options.append(Timeout(team, game))
 
-    # Incluir acción de no hacer nada
     return substitution_options + timeout_options + [ManagerNothing(team, game)]
 
 
@@ -85,9 +77,6 @@ class ActionRandomStrategy(ManagerActionStrategy):
 class ActionSimulateStrategy(ManagerActionStrategy):
 
     def action(self, team: str, simulator: SimulatorAgent) -> Action:
-        # print(
-        #     f"El entrenador del equipo {simulator.game.t1.name if team == T1 else simulator.game.t2.name} está pensando..."
-        # )
 
         game = simulator.game
         team_score = game.t1_score if team == T1 else game.t2_score
