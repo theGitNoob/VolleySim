@@ -2,15 +2,16 @@ import os
 
 import pandas as pd
 
-from Simulator.build_data import conf_game
 from llm.conf_game_llm import conf_game_llm
+from Simulator.build_data import conf_game
 
 df = pd.read_csv("data/VNL2024Men.csv")
 # df.loc[:, df.columns.str.startswith("p_")] = 50
 df["Dorsal"] = range(1, len(df) + 1)
 
-params = conf_game_llm(input(
-    """
+params = conf_game_llm(
+    input(
+        """
 Describe tu simulación, especifica:
 * equipo 1
 * equipo 2
@@ -18,11 +19,11 @@ Describe tu simulación, especifica:
 * estrategia del manager visitante para elegir la alineación
 * estrategias de los jugadores para tomar decisiones
 
-"""), df)
-params = conf_game_llm(
-    "Quiero un partido entre cuba y argentina",
-    df
+"""
+    ),
+    df,
 )
+params = conf_game_llm("Quiero un partido entre cuba y argentina", df)
 
 # Ejemplo de parámetros de simulación
 

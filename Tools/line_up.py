@@ -12,7 +12,7 @@ NORMAL = "NORMAL"
 
 class LineUpGrid:
     def __init__(
-            self, row: int, col: int, position_number: int, player_role: str
+        self, row: int, col: int, position_number: int, player_role: str
     ) -> None:
         self.row: int = row  # Posición en la cancha (fila)
         self.col: int = col  # Posición en la cancha (columna)
@@ -25,15 +25,15 @@ class LineUpGrid:
 
     def conf_player(self, player: PlayerData):
         in_role = (
-                player.position == self.player_role or self.player_role in player.roles
+            player.position == self.player_role or self.player_role in player.roles
         )
         self._set_statistics(player, in_role)
         self.player = player.dorsal  # Asignar dorsal del jugador
 
     def set_statistics(self, player_data: PlayerData) -> None:
         in_role = (
-                player_data.position == self.player_role
-                or self.player_role in player_data.roles
+            player_data.position == self.player_role
+            or self.player_role in player_data.roles
         )
         self._set_statistics(player_data, in_role)
 
@@ -76,7 +76,7 @@ class LineUp(ABC):
         # Rotar posiciones en sentido de las agujas del reloj según las reglas del voleibol
         position_numbers = [1, 2, 3, 4, 5, 6]
         rotated_positions = (
-                position_numbers[-1:] + position_numbers[:-1]
+            position_numbers[-1:] + position_numbers[:-1]
         )  # Mover el último al inicio
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):

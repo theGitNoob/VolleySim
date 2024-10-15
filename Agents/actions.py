@@ -14,11 +14,15 @@ def recursive_update(original, backup):
         if isinstance(value, (int, float, str, bool, tuple)):
             setattr(original, key, value)
         elif isinstance(value, list):
-            setattr(original, key, [
-                recursive_update(orig, back) if hasattr(orig, '__dict__') else back
-                for orig, back in zip(getattr(original, key), value)
-            ])
-        elif hasattr(value, '__dict__'):
+            setattr(
+                original,
+                key,
+                [
+                    recursive_update(orig, back) if hasattr(orig, "__dict__") else back
+                    for orig, back in zip(getattr(original, key), value)
+                ],
+            )
+        elif hasattr(value, "__dict__"):
             recursive_update(getattr(original, key), value)
         else:
             setattr(original, key, copy.deepcopy(value))
@@ -26,12 +30,12 @@ def recursive_update(original, backup):
 
 class Action(ABC):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__()
         self.src: Tuple[int, int] = src
@@ -70,12 +74,12 @@ class Action(ABC):
 
 class Receive(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -110,12 +114,12 @@ class Receive(Action):
 
 class Serve(Action):
     def __init__(
-            self,
-            src: tuple[int, int],
-            dest: tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: tuple[int, int],
+        dest: tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -152,12 +156,12 @@ class Serve(Action):
 
 class Dig(Action):
     def __init__(
-            self,
-            src: tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -190,12 +194,12 @@ class Dig(Action):
 
 class Set(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -227,12 +231,12 @@ class Set(Action):
 
 class Attack(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -265,12 +269,12 @@ class Attack(Action):
 
 class Block(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -305,12 +309,12 @@ class Block(Action):
 
 class Move(Action):
     def __init__(
-            self,
-            src: Tuple[int, int],
-            dest: Tuple[int, int],
-            player: int,
-            team: str,
-            game: Game,
+        self,
+        src: Tuple[int, int],
+        dest: Tuple[int, int],
+        player: int,
+        team: str,
+        game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.src = src
@@ -390,9 +394,7 @@ class Substitution(LazyAction):
         team_data.on_bench.add(self.player_in)
 
         # Actualizar el campo de juego
-        self.game.field.update_player_on_field(
-            self.player_out, self.player_in
-        )
+        self.game.field.update_player_on_field(self.player_out, self.player_in)
 
     def __init__(self, player_out: int, player_in: int, team: str, game: Game) -> None:
         super().__init__((0, 0), (0, 0), player_out, team, game)
@@ -457,7 +459,7 @@ class ManagerCelebrate(Action):
 
 class CompressAction(Action):
     def __init__(self, actions: List[LazyAction]) -> None:
-        super().__init__((0, 0), (0, 0), -1, '', None)
+        super().__init__((0, 0), (0, 0), -1, "", None)
         self.actions: List[LazyAction] = actions
 
     def execute(self):
@@ -562,7 +564,11 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             action.game.rally_over = True
         else:
@@ -576,7 +582,11 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             action.game.rally_over = True
         else:
@@ -592,7 +602,11 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             action.game.rally_over = True
 
@@ -606,7 +620,11 @@ class Dispatch:
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             action.game.rally_over = True
 
@@ -620,7 +638,11 @@ class Dispatch:
 
     def block_trigger(self, action: Block):
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             return
         else:
@@ -635,7 +657,11 @@ class Dispatch:
         action.game.last_team_touched = action.team
         action.game.general_touches += 1
         if not action.success:
-            player = action.game.t1.get_player(action.player) if action.team == T1 else action.game.t2.get_player(action.player)
+            player = (
+                action.game.t1.get_player(action.player)
+                if action.team == T1
+                else action.game.t2.get_player(action.player)
+            )
             player.errors += 1
             action.game.rally_over = True
         else:

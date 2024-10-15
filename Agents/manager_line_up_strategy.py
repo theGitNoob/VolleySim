@@ -4,7 +4,7 @@ from typing import List
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.enum import T1, PlayerRole
-from Tools.line_up import LineUp, StandardVolleyballLineUp, BestLineUp
+from Tools.line_up import BestLineUp, LineUp, StandardVolleyballLineUp
 from Tools.player_data import PlayerData
 
 CANT_SIMULATIONS = 1  # Número de simulaciones para evaluar las alineaciones

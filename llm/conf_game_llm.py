@@ -11,8 +11,10 @@ from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
 from Agents.manager_line_up_strategy import (LineUpRandomStrategy,
                                              LineUpSimulateStrategy,
                                              ManagerLineUpStrategy)
-from Agents.player_strategy import PlayerStrategy, VolleyballStrategy, RandomStrategy, MinimaxStrategy
+from Agents.player_strategy import (MinimaxStrategy, PlayerStrategy,
+                                    RandomStrategy, VolleyballStrategy)
 from Simulator.simulation_params import SimulationParams
+
 from .gemini import query
 
 
@@ -56,9 +58,7 @@ def teams_prompt(user_prompt: str, df: DataFrame) -> Tuple[str, str]:
     dime a que equipos hace referencia con el siguiente formato: `Nombre del equipo 1 vs Nombre del equipo 2`
     DEBES USAR EXACTAMENTE LOS NOMBRES QUE TE PROPORCIONÉ USANDO EL FORMATO DE 3 LETRAS SOLAMENTE
 """
-    response = query(
-        prompt + "\n" + "\n".join(team_names) + "\n" + user_prompt
-    ).strip()
+    response = query(prompt + "\n" + "\n".join(team_names) + "\n" + user_prompt).strip()
 
     try:
         t1, t2 = [team.strip() for team in response.split(" vs ")]
@@ -73,7 +73,7 @@ def teams_prompt(user_prompt: str, df: DataFrame) -> Tuple[str, str]:
 
 
 def managers_line_up_prompt(
-        user_prompt: str,
+    user_prompt: str,
 ) -> Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy]:
     strategies = {
         "random": LineUpRandomStrategy(),
@@ -100,7 +100,7 @@ def managers_line_up_prompt(
 
 
 def managers_action_prompt(
-        user_prompt: str,
+    user_prompt: str,
 ) -> Tuple[ManagerActionStrategy, ManagerActionStrategy]:
     strategies = {
         "random": ActionRandomStrategy(),
@@ -129,9 +129,9 @@ def managers_action_prompt(
 
 def players_action_prompt(user_prompt: str) -> Tuple[PlayerStrategy, PlayerStrategy]:
     strategies = {
-        'random': RandomStrategy(),
+        "random": RandomStrategy(),
         "heuristic": VolleyballStrategy(),
-        'minimax': MinimaxStrategy()
+        "minimax": MinimaxStrategy(),
     }
     prompt = f"""
         Dada la siguiente lista de estrategias: {strategies.keys()}

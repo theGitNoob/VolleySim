@@ -112,7 +112,7 @@ class TeamData:
             raise Exception(
                 f"No se encontró al jugador con dorsal {player_dorsal} en el equipo {self.name}"
             )
-        
+
     def get_player(self, player_dorsal: int) -> PlayerData:
         """
         Obtiene los datos de un jugador basado en su dorsal.
