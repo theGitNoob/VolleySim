@@ -34,10 +34,10 @@ class BdiAgent:
     def determine_desires(self, team: str) -> List:
         desires = []
         if self.game_state.ball_position.team == team:
-            desires.append(self.desires[0])  # ExecuteOffense
+            desires.append(self.desires[0])
         else:
-            desires.append(self.desires[1])  # MaintainDefense
-        desires.append(self.desires[2])  # ReturnToPosition siempre es aplicable
+            desires.append(self.desires[1])
+        desires.append(self.desires[2])
         return sorted(desires, key=lambda d: d.importance, reverse=True)
 
     def select_desire(self, desires: List) -> Desire:

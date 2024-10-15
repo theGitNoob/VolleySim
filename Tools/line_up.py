@@ -9,21 +9,21 @@ class LineUpGrid:
     def __init__(
             self, row: int, col: int, position_number: int, player_role: str
     ) -> None:
-        self.row: int = row  # Posición en la cancha (fila)
-        self.col: int = col  # Posición en la cancha (columna)
+        self.row: int = row
+        self.col: int = col
         self.player: Optional[int] = (
-            None  # Dorsal del jugador (None si no hay jugador asignado)
+            None
         )
-        self.position_number: int = position_number  # Posición de rotación (1-6)
-        self.conf: str = "NORMAL"  # Estrategia actual
-        self.player_role: str = player_role  # Rol del jugador
+        self.position_number: int = position_number
+        self.conf: str = "NORMAL"
+        self.player_role: str = player_role
 
     def conf_player(self, player: PlayerData):
         in_role = (
                 player.position == self.player_role or self.player_role in player.roles
         )
         self._set_statistics(player, in_role)
-        self.player = player.dorsal  # Asignar dorsal del jugador
+        self.player = player.dorsal
 
     def set_statistics(self, player_data: PlayerData) -> None:
         in_role = (
@@ -34,7 +34,6 @@ class LineUpGrid:
 
     def _set_statistics(self, player_data: PlayerData, in_role: bool) -> None:
         if not in_role:
-            # Penalizar estadísticas si el jugador no está en su rol preferido
             player_data.p_attack = max(0, player_data.p_attack - 5)
             player_data.p_block = max(0, player_data.p_block - 5)
             player_data.p_serve = max(0, player_data.p_serve - 5)
@@ -46,7 +45,7 @@ class LineUpGrid:
 
 class LineUp(ABC):
     def __init__(self) -> None:
-        self.line_up: Dict[int, LineUpGrid] = {}  # Diccionario de posiciones (1-6)
+        self.line_up: Dict[int, LineUpGrid] = {}
 
     def conf_players(self, players: Dict[int, PlayerData]) -> None:
         for position_number, player in players.items():
@@ -69,7 +68,7 @@ class LineUp(ABC):
 
     def rotate(self, team: str):
         position_numbers = [1, 2, 3, 4, 5, 6]
-        rotated_positions = position_numbers[-1:] + position_numbers[:-1]  # Move the last to the front
+        rotated_positions = position_numbers[-1:] + position_numbers[:-1]
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):
             for grid in self.line_up.values():

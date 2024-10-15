@@ -11,10 +11,8 @@ class StartingParams:
         self.name = name
 
 
-# Nombres de equipos de voleibol (puedes reemplazarlos por los que prefieras)
 team_names = ("CUB", "JPN")
 
-# Configuraciones de inicio para diferentes escenarios de simulación
 all_random = StartingParams(
     SimulationParams(
         team_names,

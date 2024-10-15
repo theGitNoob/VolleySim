@@ -1,5 +1,4 @@
-﻿# actions.py
-import copy
+﻿import copy
 from abc import ABC, abstractmethod
 from random import random
 from typing import List, Tuple
@@ -91,7 +90,6 @@ class Receive(Action):
         self.success = random() <= receiving_skill
 
     def rollback(self):
-        # Revertir estadísticas
         recursive_update(self.game, self.game_copy)
 
 
@@ -108,14 +106,12 @@ class Serve(Action):
         self.success: bool = False
 
     def execute(self):
-        # Actualizar estadísticas del equipo y del jugador
         self.game_copy = copy.deepcopy(self.game)
         serving_skill = self.get_player_data().p_serve
 
         self.success = random() <= serving_skill
 
     def rollback(self):
-        # Revertir estadísticas
         recursive_update(self.game, self.game_copy)
 
 
@@ -245,7 +241,6 @@ class LazyAction(Action, ABC):
         pass
 
 
-# Definición de la acción Substitution
 class Substitution(LazyAction):
     def lazy_execute(self):
         # Actualizar el line-up
@@ -304,7 +299,6 @@ class Substitution(LazyAction):
         team_data.substitution_history.remove((self.player_out, self.player_in))
 
 
-# Definición de la acción Timeout
 class Timeout(Action):
     def __init__(self, team: str, game: Game) -> None:
         super().__init__((0, 0), (0, 0), -1, team, game)
@@ -318,7 +312,6 @@ class Timeout(Action):
         self.game.revert_timeout(self.team)
 
 
-# Definición de la acción ManagerNothing
 class ManagerNothing(Action):
     def __init__(self, team: str, game: Game) -> None:
         super().__init__((0, 0), (0, 0), -1, team, game)

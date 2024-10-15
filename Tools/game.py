@@ -8,9 +8,6 @@ from Tools.utils import coin_toss
 
 
 class Game:
-    """
-    Controla el estado del juego, puntajes, rotaciones y reglas.
-    """
 
     def __init__(self, t1: TeamData, t2: TeamData, cant_instances: int):
         self.last_team_touched: str | None = None
@@ -65,26 +62,21 @@ class Game:
                 {"team": T2, "score": self.t2_score, "set": self.current_set}
             )
 
-        # Cambiar servicio si el equipo anotó es diferente al que servía
         if self.serving_team != scorer_team:
             self.serving_team = scorer_team
-            # Rotar jugadores del equipo que ganó el servicio
             if scorer_team == T1:
                 self.field.rotate_players(scorer_team, self.t1.line_up, self.t2.line_up)
             else:
                 self.field.rotate_players(scorer_team, self.t2.line_up, self.t1.line_up)
 
-        # Reiniciar toques y estados
         self.touches[T1] = 0
         self.touches[T2] = 0
         self.general_touches = 0
         self.last_team_touched = None
 
-        # Verificar si el set ha terminado
         if self.has_set_ended():
             self.end_set()
         else:
-            # Reposicionar jugadores para el siguiente punto
             self.field.conf_line_ups(
                 self.t1.line_up, self.t2.line_up, self.serving_team
             )
@@ -98,7 +90,6 @@ class Game:
         return False
 
     def end_set(self):
-        # print(str(self.t1_score) + " **************** " + str(self.t2_score))
         if self.t1_score > self.t2_score:
             self.t1_sets += 1
         else:
@@ -160,7 +151,6 @@ class Game:
             [p for p in self.t2.data.keys() if p not in self.t2.on_field]
         )
 
-        # Identificar al jugador que sirve inicialmente (posición 1)
         serving_grid = self.field.find_player_in_position(1, self.serving_team)
         if serving_grid:
             serving_grid.ball = True
@@ -183,28 +173,10 @@ class Game:
         return self.serving_team == team
 
     def is_player_server(self, dorsal: int) -> bool:
-        """
-        Determines if the player with the given dorsal number is the server.
-
-        Args:
-            dorsal (int): The dorsal number of the player.
-
-        Returns:
-            bool: True if the player is the server, False otherwise.
-        """
         grid = self.field.find_player(dorsal, self.serving_team)
         return grid.position == 1
 
     def is_ball_on_our_side(self, team: str) -> bool:
-        """
-        Determines if the ball is on our side of the field.
-
-        Args:
-            team (str): The team identifier ('T1' or 'T2').
-
-        Returns:
-            bool: True if the ball is on our side, False otherwise.
-        """
         ball_grid = self.field.find_ball()
         if team == T1:
             return ball_grid.row < self.field.net_row
@@ -212,7 +184,6 @@ class Game:
             return ball_grid.row > self.field.net_row
 
     def is_ball_coming_to_player(self, dorsal: int, team: str) -> bool:
-        # Lógica simplificada para determinar si la pelota viene hacia el jugador
         player_grid = self.field.find_player(dorsal, team)
         ball_grid = self.field.find_ball()
         return (
@@ -241,15 +212,12 @@ class Game:
         return grid.ball
 
     def predict_ball_landing_position(self) -> Tuple[int, int]:
-        # Lógica simplificada: devolver la posición actual de la pelota
         ball_grid = self.field.find_ball()
         return (ball_grid.row, ball_grid.col)
 
     def start_rally(self):
-        # Inicializar variables necesarias al inicio de un rally
         self.touches = {T1: 0, T2: 0}
         self.last_team_touched = None
-        # La posesión de la pelota comienza con el equipo que sirve
         self.ball_possession_team = self.serving_team
         self.rally_over = False
 
@@ -257,12 +225,9 @@ class Game:
         return self.rally_over
 
     def determine_point_winner(self) -> str:
-        # Lógica para determinar el ganador del punto
         if self.last_fault_team:
-            # El equipo contrario gana
             return T1 if self.last_fault_team == T2 else T2
         else:
-            # El equipo que no cometió falta y tocó la pelota por última vez gana
             return (
                 self.last_team_touched
                 if self.last_team_touched
@@ -272,7 +237,6 @@ class Game:
     def get_team_score(self, team):
         return self.t1_score if team == T1 else self.t2_score
 
-    # Method to return the player more close to the ball
     def get_closest_player_to_ball(self, team: str) -> int:
         ball_grid = self.field.find_ball()
         closest_player = None
