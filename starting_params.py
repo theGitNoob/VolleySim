@@ -1,6 +1,6 @@
 from Agents.manager_action_strategy import (ActionRandomStrategy,
                                             ActionSimulateStrategy)
-from Agents.manager_line_up_strategy import LineUpRandomStrategy
+from Agents.manager_line_up_strategy import LineUpStandardStrategy
 from Agents.player_strategy import MinimaxStrategy, VolleyballStrategy
 from Simulator.simulation_params import SimulationParams
 
@@ -18,7 +18,7 @@ team_names = ("CUB", "JPN")
 all_random = StartingParams(
     SimulationParams(
         team_names,
-        (LineUpRandomStrategy(), LineUpRandomStrategy()),
+        (LineUpStandardStrategy(), LineUpStandardStrategy()),
         (ActionRandomStrategy(), ActionSimulateStrategy()),
         (VolleyballStrategy(), VolleyballStrategy()),
     ),
@@ -138,7 +138,7 @@ all_random = StartingParams(
 minimax_vs_minimax_player = StartingParams(
     SimulationParams(
         team_names,
-        (LineUpRandomStrategy(), LineUpRandomStrategy()),
+        (LineUpStandardStrategy(), LineUpStandardStrategy()),
         (ActionRandomStrategy(), ActionRandomStrategy()),
         (MinimaxStrategy(), VolleyballStrategy()),
     ),

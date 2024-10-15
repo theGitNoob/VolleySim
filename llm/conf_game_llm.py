@@ -4,12 +4,10 @@ from typing import Tuple
 
 from pandas import DataFrame
 
-from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
-                                            ActionRandomStrategy,
+from Agents.manager_action_strategy import (ActionRandomStrategy,
                                             ActionSimulateStrategy,
                                             ManagerActionStrategy)
-from Agents.manager_line_up_strategy import (LineUpRandomStrategy,
-                                             ManagerLineUpStrategy, LineUpFixedStrategy)
+from Agents.manager_line_up_strategy import (ManagerLineUpStrategy, LineUpStandardStrategy)
 from Agents.player_strategy import (MinimaxStrategy, PlayerStrategy,
                                     RandomStrategy, VolleyballStrategy)
 from Simulator.simulation_params import SimulationParams
@@ -19,7 +17,7 @@ from .gemini import query
 def conf_game_llm(user_prompt: str, df: DataFrame) -> SimulationParams | None:
     try:
         names = teams_prompt(user_prompt, df)
-        managers_line_up = managers_line_up_prompt(user_prompt)
+        managers_line_up = managers_line_up_prompt()
         managers_action = managers_action_prompt(user_prompt)
         players_action = players_action_prompt(user_prompt)
         return SimulationParams(
@@ -53,31 +51,8 @@ def teams_prompt(user_prompt: str, df: DataFrame) -> Tuple[str, str]:
         raise Exception("Error al obtener los equipos")
 
 
-def managers_line_up_prompt(
-        user_prompt: str,
-) -> Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy]:
-    strategies = {
-        "random": LineUpRandomStrategy(),
-        "simulate": LineUpFixedStrategy(),
-    }
-    prompt = f"""
-        Dada la siguiente lista de estrategias: {strategies.keys()}
-        y esta configuración del usuario: {user_prompt} 
-        dime a cual hace referencia con el siguiente formato: estrategia1 vs estrategia2
-        DEBES USAR EXACTAMENTE LOS NOMBRES QUE TE PROPORCIONÉ
-    """
-
-    response = query(
-        prompt + "\n" + "\n".join(strategies.keys()) + "\n" + user_prompt
-    ).strip()
-
-    try:
-        t1, t2 = [strategy.strip() for strategy in response.split(" vs ")]
-
-        return strategies[t1], strategies[t2]
-    except Exception as e:
-        print(f"Error al procesar las estrategias de alineación: {response}, {e}")
-        return LineUpRandomStrategy(), LineUpRandomStrategy()
+def managers_line_up_prompt() -> Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy]:
+    return LineUpStandardStrategy(), LineUpStandardStrategy()
 
 
 def managers_action_prompt(
@@ -85,8 +60,7 @@ def managers_action_prompt(
 ) -> Tuple[ManagerActionStrategy, ManagerActionStrategy]:
     strategies = {
         "random": ActionRandomStrategy(),
-        "simulate": ActionSimulateStrategy(),
-        "minimax": ActionMiniMaxStrategy(),
+        "simulate": ActionSimulateStrategy()
     }
     prompt = f"""
         Dada la siguiente lista de estrategias para el entrenador: {strategies.keys()}

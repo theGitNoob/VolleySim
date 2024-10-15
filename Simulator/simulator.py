@@ -4,8 +4,7 @@ from typing import Generator, List, Set, Tuple
 from prettytable import PrettyTable
 
 from Agents.actions import Dispatch, Move, Nothing
-from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
-                                            ActionSimulateStrategy)
+from Agents.manager_action_strategy import (ActionSimulateStrategy)
 from Agents.manager_agent import Manager
 from Agents.simulator_agent import SimulatorAgent
 from Agents.team import TeamAgent
@@ -97,14 +96,14 @@ class Simulator:
             ball_position = self.game.field.find_ball()
             ball_position = (ball_position.row, ball_position.col)
             print("Sirve T1")
-            self.game.field.move_ball(ball_position, (1, 1))
+            self.game.field.move_ball(ball_position, (2, 2))
         else:
             self.game.serving_team = T2
             self.game.ball_possession_team = T2
             ball_position = self.game.field.find_ball()
             ball_position = (ball_position.row, ball_position.col)
             print("Sirve T2")
-            self.game.field.move_ball(ball_position, (17, 1))
+            self.game.field.move_ball(ball_position, (17, 6))
 
         self.game.start_rally()
         self.game.instance = 1
@@ -231,8 +230,6 @@ class Simulator:
     def get_simulator(self, manager: Manager, team: str, mask: Set[Tuple[int, str]]):
         if isinstance(manager.action_strategy, ActionSimulateStrategy):
             return SimulatorActionSimulateManager(self, team, mask)
-        elif isinstance(manager.action_strategy, ActionMiniMaxStrategy):
-            return SimulatorActionMiniMaxManager(self, team, mask)
         return SimulatorRandom(self.game)
 
     def get_player_simulator(self, team: str, player: int, mask: Set[Tuple[int, str]]):
