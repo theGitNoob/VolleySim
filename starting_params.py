@@ -11,7 +11,7 @@ class StartingParams:
         self.name = name
 
 
-team_names = ("CUB", "JPN")
+team_names = ("USA", "JPN")
 
 all_random = StartingParams(
     SimulationParams(
