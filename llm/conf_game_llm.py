@@ -9,12 +9,10 @@ from Agents.manager_action_strategy import (ActionMiniMaxStrategy,
                                             ActionSimulateStrategy,
                                             ManagerActionStrategy)
 from Agents.manager_line_up_strategy import (LineUpRandomStrategy,
-                                             LineUpSimulateStrategy,
-                                             ManagerLineUpStrategy)
+                                             ManagerLineUpStrategy, LineUpFixedStrategy)
 from Agents.player_strategy import (MinimaxStrategy, PlayerStrategy,
                                     RandomStrategy, VolleyballStrategy)
 from Simulator.simulation_params import SimulationParams
-
 from .gemini import query
 
 
@@ -30,23 +28,6 @@ def conf_game_llm(user_prompt: str, df: DataFrame) -> SimulationParams | None:
     except Exception as e:
         print(f"Error en la configuración del juego: {e}")
         return None
-
-
-def league_prompt(user_prompt: str, df: DataFrame) -> str:
-    league_names = df["Team"].unique()
-    league_names = [i for i in league_names if isinstance(i, str)]
-
-    prompt = """
-Tengo la siguiente lista de ligas y esta consulta definida por el usuario. Del texto introducido por el usuario, dime 
-de qué liga el usuario desea simular el juego de voleibol. El formato de ejemplo es: Liga Nacional de Voleibol
-"""
-    league = query(prompt + "\n" + "\n".join(league_names) + "\n" + user_prompt).strip()
-
-    if league not in league_names:
-        print(f"Liga no encontrada: {league}")
-        raise Exception("Liga no válida")
-
-    return league
 
 
 def teams_prompt(user_prompt: str, df: DataFrame) -> Tuple[str, str]:
@@ -73,11 +54,11 @@ def teams_prompt(user_prompt: str, df: DataFrame) -> Tuple[str, str]:
 
 
 def managers_line_up_prompt(
-    user_prompt: str,
+        user_prompt: str,
 ) -> Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy]:
     strategies = {
         "random": LineUpRandomStrategy(),
-        "simulate": LineUpSimulateStrategy(),
+        "simulate": LineUpFixedStrategy(),
     }
     prompt = f"""
         Dada la siguiente lista de estrategias: {strategies.keys()}
@@ -100,7 +81,7 @@ def managers_line_up_prompt(
 
 
 def managers_action_prompt(
-    user_prompt: str,
+        user_prompt: str,
 ) -> Tuple[ManagerActionStrategy, ManagerActionStrategy]:
     strategies = {
         "random": ActionRandomStrategy(),
@@ -108,7 +89,7 @@ def managers_action_prompt(
         "minimax": ActionMiniMaxStrategy(),
     }
     prompt = f"""
-        Dada la siguiente lista de estrategias: {strategies.keys()}
+        Dada la siguiente lista de estrategias para el entrenador: {strategies.keys()}
         y esta configuración del usuario: {user_prompt} 
         dime a cual hace referencia con el siguiente formato: estrategia1 vs estrategia2
         DEBES USAR EXACTAMENTE LOS NOMBRES QUE TE PROPORCIONÉ
