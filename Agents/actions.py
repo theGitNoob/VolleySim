@@ -30,12 +30,12 @@ def recursive_update(original, backup):
 
 class Action(ABC):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__()
         self.src: Tuple[int, int] = src
@@ -74,12 +74,12 @@ class Action(ABC):
 
 class Receive(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -100,26 +100,16 @@ class Receive(Action):
     def rollback(self):
         # Revertir estadísticas
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.receives -= 1
-        player_stats.receives -= 1
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Serve(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -135,33 +125,22 @@ class Serve(Action):
 
         serving_skill = self.get_player_data().p_serve
 
-        # TODO: Improve formula having in account the possition where the player whants the ball
+        # TODO: Improve formula having in account the position where the player wants the ball
         self.success = random() <= serving_skill
 
     def rollback(self):
         # Revertir estadísticas
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.serves -= 1
-        player_stats.serves -= 1
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Dig(Action):
     def __init__(
-        self,
-        src: tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -179,27 +158,16 @@ class Dig(Action):
 
     def rollback(self):
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.digs -= 1
-        player_stats.digs -= 1
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Set(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -216,27 +184,16 @@ class Set(Action):
 
     def rollback(self):
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.sets -= 1
-        player_stats.sets -= 1
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Attack(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -254,27 +211,16 @@ class Attack(Action):
 
     def rollback(self):
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.attacks -= 1
-        player_stats.attacks -= 1
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Block(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.success: bool = False
@@ -293,28 +239,16 @@ class Block(Action):
 
     def rollback(self):
         recursive_update(self.game, self.game_copy)
-        return
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.blocks -= 1
-        player_stats.blocks -= 1
-
-        if self.success:
-            self.game.field.move_ball(self.dest, self.src)
-
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
 
 
 class Move(Action):
     def __init__(
-        self,
-        src: Tuple[int, int],
-        dest: Tuple[int, int],
-        player: int,
-        team: str,
-        game: Game,
+            self,
+            src: Tuple[int, int],
+            dest: Tuple[int, int],
+            player: int,
+            team: str,
+            game: Game,
     ) -> None:
         super().__init__(src, dest, player, team, game)
         self.src = src
@@ -325,13 +259,7 @@ class Move(Action):
         self.game.field.move_player(self.src, self.dest)
 
     def rollback(self):
-        # self.game.__dict__.update(self.game_copy.__dict__)
-        # self.game_copy = None
         recursive_update(self.game, self.game_copy)
-        return
-        # self.game.field.move_player(self.dest, self.src)
-
-        # self.game.field.move_player(self.dest, self.src)
 
 
 class Nothing(Action):
@@ -422,8 +350,6 @@ class Timeout(Action):
     def execute(self):
         # Registrar el tiempo muerto
         self.game.register_time_out(self.team)
-        # print("Tiempo muerto de " + self.team + ". Pulsa Enter para continuar...")
-        # input()
 
     def rollback(self):
         # Revertir el tiempo muerto
@@ -449,11 +375,10 @@ class ManagerCelebrate(Action):
         super().__init__((0, 0), (0, 0), -1, team, game)
 
     def execute(self):
-        print(f"¡{self.team} celebra el punto! Pulsa Enter para continuar...")
-        # input()
+        # print(f"¡{self.team} celebra el punto! Pulsa Enter para continuar...")
+        pass
 
     def rollback(self):
-        # No hay nada que revertir
         pass
 
 
