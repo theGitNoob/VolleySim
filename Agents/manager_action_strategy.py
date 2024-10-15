@@ -34,16 +34,16 @@ def possible_substitutions(game: Game, team: str) -> List[Action]:
         for bench_player in team_data.on_bench:
             # Evitar sustituir a un jugador que ya entró por el mismo jugador en el set
             if any(
-                sub
-                for sub in team_data.substitution_history
-                if sub[1] == bench_player and sub[0] == player_on_court
+                    sub
+                    for sub in team_data.substitution_history
+                    if sub[1] == bench_player and sub[0] == player_on_court
             ):
                 continue
 
             # Evitar sustituir a 2 jugadores con distintos roles
             if (
-                team_data.data[player_on_court].position
-                != team_data.data[bench_player].position
+                    team_data.data[player_on_court].position
+                    != team_data.data[bench_player].position
             ):
                 continue
 
@@ -106,8 +106,8 @@ class ActionSimulateStrategy(ManagerActionStrategy):
             elif team_score - enemy_score >= 3:
                 return ManagerCelebrate(team, game)
         elif (
-            1 < last_enemy_points - last_team_points <= 3
-            and 1 < enemy_score - team_score <= 3
+                1 < last_enemy_points - last_team_points <= 3
+                and 1 < enemy_score - team_score <= 3
         ):
             return Timeout(team, game)
 
@@ -121,9 +121,9 @@ class ActionSimulateStrategy(ManagerActionStrategy):
         player_error = None
         for player in game.t1.on_field if team == T1 else game.t2.on_field:
             if (
-                game.t1.data[player].errors > max_errors
-                if team == T1
-                else game.t2.data[player].errors > max_errors
+                    game.t1.data[player].errors > max_errors
+                    if team == T1
+                    else game.t2.data[player].errors > max_errors
             ):
                 max_errors = (
                     game.t1.data[player].errors
@@ -149,11 +149,11 @@ class ActionSimulateStrategy(ManagerActionStrategy):
                     )
                     if player_in_role == "L":
                         if (
-                            player_in_data.p_receive + player_in_data.p_dig
+                                player_in_data.p_receive + player_in_data.p_dig
                         ) / 2 > value:
                             value = (
-                                player_in_data.p_receive + player_in_data.p_dig
-                            ) / 2
+                                            player_in_data.p_receive + player_in_data.p_dig
+                                    ) / 2
                             action_selected = action
                     elif player_in_role == "S":
                         if player_in_data.p_set > value:
@@ -165,23 +165,23 @@ class ActionSimulateStrategy(ManagerActionStrategy):
                             action_selected = action
                     elif player_in_role == "OH":
                         if (
-                            player_in_data.p_attack
-                            + player_in_data.p_dig
-                            + player_in_data.p_receive
-                        ) / 3 > value:
-                            value = (
                                 player_in_data.p_attack
                                 + player_in_data.p_dig
                                 + player_in_data.p_receive
-                            ) / 3
+                        ) / 3 > value:
+                            value = (
+                                            player_in_data.p_attack
+                                            + player_in_data.p_dig
+                                            + player_in_data.p_receive
+                                    ) / 3
                             action_selected = action
                     elif player_in_role == "MB":
                         if (
-                            player_in_data.p_block + player_in_data.p_attack
+                                player_in_data.p_block + player_in_data.p_attack
                         ) / 2 > value:
                             value = (
-                                player_in_data.p_block + player_in_data.p_attack
-                            ) / 2
+                                            player_in_data.p_block + player_in_data.p_attack
+                                    ) / 2
                             action_selected = action
         return action_selected if action_selected else ManagerNothing(team, game)
 
@@ -202,111 +202,3 @@ class ActionSimulateStrategy(ManagerActionStrategy):
                 break
         game.points_history.reverse()
         return team_points, enemy_points
-
-
-class ActionMiniMaxStrategy(ManagerActionStrategy):
-    def action(self, team: str, simulator: SimulatorAgent) -> Action:
-        print(
-            f'El entrenador del equipo {"local" if team == T1 else "visitante"} está pensando...'
-        )
-
-        depth = 2  # Profundidad del árbol de decisión
-
-        simulator.simulate_current()
-        if team == T1:
-            value, action = self.maximize(simulator, depth, MIN, MAX, team)
-        else:
-            value, action = self.minimize(simulator, depth, MIN, MAX, team)
-        simulator.reset_current()
-
-        return action if action else ManagerNothing(team, simulator.game)
-
-    def maximize(
-        self,
-        simulator: SimulatorAgent,
-        depth: int,
-        alpha: float,
-        beta: float,
-        team: str,
-    ) -> Tuple[float, Action]:
-        if depth == 0 or simulator.game.is_finish():
-            return ManagerGameEvaluator().eval(simulator.game, team), None
-
-        max_eval = MIN
-        best_action = None
-
-        actions = possible_actions(simulator.game, team)
-        if not actions:
-            return ManagerGameEvaluator().eval(simulator.game, team), None
-
-        for action in actions:
-            len_stack = len(simulator.dispatch().stack)
-            simulator.dispatch().dispatch(action)
-
-            eval, _ = self.minimize(simulator, depth - 1, alpha, beta, team)
-
-            if eval > max_eval:
-                max_eval = eval
-                best_action = action
-
-            simulator.dispatch().rollback()
-            while len(simulator.dispatch().stack) != len_stack:
-                simulator.dispatch().rollback()
-
-            alpha = max(alpha, eval)
-            if beta <= alpha:
-                break
-
-        return max_eval, best_action
-
-    def minimize(
-        self,
-        simulator: SimulatorAgent,
-        depth: int,
-        alpha: float,
-        beta: float,
-        team: str,
-    ) -> Tuple[float, Action]:
-        if depth == 0 or simulator.game.is_finish():
-            return ManagerGameEvaluator().eval(simulator.game, team), None
-
-        min_eval = MAX
-        best_action = None
-
-        opponent_team = T1 if team == T2 else T2
-        actions = possible_actions(simulator.game, opponent_team)
-        if not actions:
-            return ManagerGameEvaluator().eval(simulator.game, team), None
-
-        for action in actions:
-            len_stack = len(simulator.dispatch().stack)
-            simulator.dispatch().dispatch(action)
-
-            eval, _ = self.maximize(simulator, depth - 1, alpha, beta, team)
-
-            if eval < min_eval:
-                min_eval = eval
-                best_action = action
-
-            simulator.dispatch().rollback()
-            while len(simulator.dispatch().stack) != len_stack:
-                simulator.dispatch().rollback()
-
-            beta = min(beta, eval)
-            if beta <= alpha:
-                break
-
-        return min_eval, best_action
-
-
-class ManagerGameEvaluator:
-    def eval(self, game: Game, team: str) -> float:
-        # Evaluar el estado del juego desde la perspectiva del entrenador
-        # Considerar la puntuación, niveles de fatiga y otros factores
-
-        # Diferencia de puntuación
-        score_diff = (
-            (game.t1_score - game.t2_score)
-            if team == T1
-            else (game.t2_score - game.t1_score)
-        )

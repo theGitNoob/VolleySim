@@ -15,15 +15,15 @@ params = conf_game_llm(
 Describe tu simulación, especifica:
 * equipo 1
 * equipo 2
-* estrategia del manager local para elegir la alineación
-* estrategia del manager visitante para elegir la alineación
+* estrategia del manager local para tomar decisiones
+* estrategia del manager visitante para tomar decisiones
 * estrategias de los jugadores para tomar decisiones
 
 """
     ),
     df,
 )
-params = conf_game_llm("Quiero un partido entre cuba y argentina", df)
+# params = conf_game_llm("Quiero un partido entre cuba y argentina", df)
 
 # Ejemplo de parámetros de simulación
 

@@ -4,15 +4,10 @@ from typing import Dict, Optional
 from Tools.enum import PlayerRole, dict_t1, dict_t2
 from Tools.player_data import PlayerData
 
-# Estrategias
-OFFENSIVE = "OFFENSIVE"
-DEFENSIVE = "DEFENSIVE"
-NORMAL = "NORMAL"
-
 
 class LineUpGrid:
     def __init__(
-        self, row: int, col: int, position_number: int, player_role: str
+            self, row: int, col: int, position_number: int, player_role: str
     ) -> None:
         self.row: int = row  # Posición en la cancha (fila)
         self.col: int = col  # Posición en la cancha (columna)
@@ -20,20 +15,20 @@ class LineUpGrid:
             None  # Dorsal del jugador (None si no hay jugador asignado)
         )
         self.position_number: int = position_number  # Posición de rotación (1-6)
-        self.conf: str = NORMAL  # Estrategia actual
+        self.conf: str = "NORMAL"  # Estrategia actual
         self.player_role: str = player_role  # Rol del jugador
 
     def conf_player(self, player: PlayerData):
         in_role = (
-            player.position == self.player_role or self.player_role in player.roles
+                player.position == self.player_role or self.player_role in player.roles
         )
         self._set_statistics(player, in_role)
         self.player = player.dorsal  # Asignar dorsal del jugador
 
     def set_statistics(self, player_data: PlayerData) -> None:
         in_role = (
-            player_data.position == self.player_role
-            or self.player_role in player_data.roles
+                player_data.position == self.player_role
+                or self.player_role in player_data.roles
         )
         self._set_statistics(player_data, in_role)
 
@@ -73,26 +68,19 @@ class LineUp(ABC):
         return line_up_position.player_role if line_up_position else None
 
     def rotate(self, team: str):
-        # Rotar posiciones en sentido de las agujas del reloj según las reglas del voleibol
         position_numbers = [1, 2, 3, 4, 5, 6]
-        rotated_positions = (
-            position_numbers[-1:] + position_numbers[:-1]
-        )  # Mover el último al inicio
+        rotated_positions = position_numbers[-1:] + position_numbers[:-1]  # Move the last to the front
         temp_line_up = {}
         for old_pos_num, new_pos_num in zip(position_numbers, rotated_positions):
             for grid in self.line_up.values():
                 if grid.position_number == old_pos_num:
                     grid.position_number = new_pos_num
-                    grid.col = (
-                        dict_t1[new_pos_num][1]
-                        if team == "T1"
-                        else dict_t2[new_pos_num][1]
-                    )
-                    grid.row = (
-                        dict_t1[new_pos_num][0]
-                        if team == "T1"
-                        else dict_t2[new_pos_num][0]
-                    )
+                    if team == "T1":
+                        grid.row, grid.col = dict_t1[new_pos_num]
+                    elif team == "T2":
+                        grid.row, grid.col = dict_t2[new_pos_num]
+                    else:
+                        raise ValueError(f"Unknown team: {team}")
                     temp_line_up[new_pos_num] = grid
                     break
         self.line_up = temp_line_up
@@ -128,42 +116,29 @@ class StandardVolleyballLineUp(LineUp):
         self.line_up = self._create_positions(team_side)
 
     def _create_positions(self, team_side: str) -> Dict[int, LineUpGrid]:
-        # Posiciones base (Equipo 1)
         positions = {
-            3: LineUpGrid(8, 4, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
-            5: LineUpGrid(1, 7, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 2
-            6: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
-            1: LineUpGrid(1, 1, 1, PlayerRole.SETTER),  # Posición 4
-            2: LineUpGrid(7, 1, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 5
-            4: LineUpGrid(7, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
+            3: LineUpGrid(dict_t1[3][0], dict_t1[3][1], 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
+            5: LineUpGrid(dict_t1[5][0], dict_t1[5][1], 5, PlayerRole.OUTSIDE_HITTER),  # Posición 2
+            6: LineUpGrid(dict_t1[6][0], dict_t1[6][1], 6, PlayerRole.LIBERO),  # Posición 3
+            1: LineUpGrid(dict_t1[1][0], dict_t1[1][1], 1, PlayerRole.SETTER),  # Posición 4
+            2: LineUpGrid(dict_t1[2][0], dict_t1[2][1], 2, PlayerRole.OUTSIDE_HITTER),  # Posición 5
+            4: LineUpGrid(dict_t1[4][0], dict_t1[4][1], 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
         }
 
         if team_side == "T2":
-            # Reflejar las posiciones en el eje vertical
             for grid in positions.values():
-                grid.row = self.court_length - grid.row
-        return positions
+                match grid.position_number:
+                    case 1:
+                        grid.row, grid.col = dict_t2[1]
+                    case 2:
+                        grid.row, grid.col = dict_t2[2]
+                    case 3:
+                        grid.row, grid.col = dict_t2[3]
+                    case 4:
+                        grid.row, grid.col = dict_t2[4]
+                    case 5:
+                        grid.row, grid.col = dict_t2[5]
+                    case 6:
+                        grid.row, grid.col = dict_t2[6]
 
-
-class BestLineUp(LineUp):
-    def __init__(self, team_side: str) -> None:
-        super().__init__()
-        self.court_length = 18
-        self.line_up = self._create_positions(team_side)
-
-    def _create_positions(self, team_side: str) -> Dict[int, LineUpGrid]:
-        # Posiciones base (Equipo 1)
-        positions = {
-            3: LineUpGrid(7, 5, 3, PlayerRole.MIDDLE_BLOCKER),  # Posición 1
-            5: LineUpGrid(1, 6, 5, PlayerRole.OUTSIDE_HITTER),  # Posición 2
-            6: LineUpGrid(4, 4, 6, PlayerRole.LIBERO),  # Posición 3
-            1: LineUpGrid(2, 2, 1, PlayerRole.SETTER),  # Posición 4
-            2: LineUpGrid(6, 2, 2, PlayerRole.OUTSIDE_HITTER),  # Posición 5
-            4: LineUpGrid(5, 7, 4, PlayerRole.OPPOSITE_HITTER),  # Posición 6
-        }
-
-        if team_side == "T2":
-            # Reflejar las posiciones en el eje vertical
-            for grid in positions.values():
-                grid.row = self.court_length - grid.row
         return positions
