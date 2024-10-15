@@ -41,10 +41,14 @@ class Game:
 
         if scorer_team == T1:
             self.t1_score += 1
-            self.points_history.append({"team": T1, "score": self.t1_score, "set": self.current_set})
+            self.points_history.append(
+                {"team": T1, "score": self.t1_score, "set": self.current_set}
+            )
         else:
             self.t2_score += 1
-            self.points_history.append({"team": T2, "score": self.t2_score, "set": self.current_set})
+            self.points_history.append(
+                {"team": T2, "score": self.t2_score, "set": self.current_set}
+            )
 
         # Cambiar servicio si el equipo anotó es diferente al que servía
         if self.serving_team != scorer_team:
@@ -72,8 +76,8 @@ class Game:
 
     def has_set_ended(self) -> bool:
         if (
-                self.t1_score >= self.points_to_win_set
-                or self.t2_score >= self.points_to_win_set
+            self.t1_score >= self.points_to_win_set
+            or self.t2_score >= self.points_to_win_set
         ) and abs(self.t1_score - self.t2_score) >= 2:
             return True
         return False
@@ -199,10 +203,10 @@ class Game:
         player_grid = self.field.find_player(dorsal, team)
         ball_grid = self.field.find_ball()
         return (
-                self.field.int_distance(
-                    (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
-                )
-                <= 2
+            self.field.int_distance(
+                (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
+            )
+            <= 2
         )
 
     def is_opponent_attacking(self, team: str) -> bool:
@@ -277,19 +281,26 @@ class Game:
     def get_opponent_team(team: str) -> str:
         return T1 if team == T2 else T2
 
-    def role_position(self, role: str, team: str, destination: Tuple[int, int] = (0, 0)) -> GridField:
+    def role_position(
+        self, role: str, team: str, destination: Tuple[int, int] = (0, 0)
+    ) -> GridField:
         min_distance = float("inf")
         role_position = None
         counter = 0
-        if role == 'OH':
+        if role == "OH":
             for row in self.field.grid:
                 for grid in row:
                     if grid.player != -1 and grid.team == team:
-                        player_role = self.t1.get_player_role(grid.player) if team == T1 else self.t2.get_player_role(
-                            grid.player)
+                        player_role = (
+                            self.t1.get_player_role(grid.player)
+                            if team == T1
+                            else self.t2.get_player_role(grid.player)
+                        )
                         if player_role == role:
                             counter += 1
-                            distance = self.field.distance(destination, (grid.row, grid.col))
+                            distance = self.field.distance(
+                                destination, (grid.row, grid.col)
+                            )
                             if distance < min_distance:
                                 min_distance = distance
                                 role_position = grid
@@ -299,8 +310,11 @@ class Game:
         for row in self.field.grid:
             for grid in row:
                 if grid.player != -1 and grid.team == team:
-                    player_role = self.t1.get_player_role(grid.player) if team == T1 else self.t2.get_player_role(
-                        grid.player)
+                    player_role = (
+                        self.t1.get_player_role(grid.player)
+                        if team == T1
+                        else self.t2.get_player_role(grid.player)
+                    )
                     if player_role == role:
                         return grid
 

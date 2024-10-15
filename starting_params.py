@@ -1,6 +1,7 @@
-from Agents.manager_action_strategy import ActionRandomStrategy, ActionSimulateStrategy
+from Agents.manager_action_strategy import (ActionRandomStrategy,
+                                            ActionSimulateStrategy)
 from Agents.manager_line_up_strategy import LineUpRandomStrategy
-from Agents.player_strategy import VolleyballStrategy, MinimaxStrategy
+from Agents.player_strategy import MinimaxStrategy, VolleyballStrategy
 from Simulator.simulation_params import SimulationParams
 
 
@@ -139,7 +140,7 @@ minimax_vs_minimax_player = StartingParams(
         team_names,
         (LineUpRandomStrategy(), LineUpRandomStrategy()),
         (ActionRandomStrategy(), ActionRandomStrategy()),
-        (MinimaxStrategy(), VolleyballStrategy())
+        (MinimaxStrategy(), VolleyballStrategy()),
     ),
-    'minimax_vs_minimax_player'
+    "minimax_vs_minimax_player",
 )
