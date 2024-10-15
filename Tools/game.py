@@ -38,14 +38,29 @@ class Game:
 
     def score_point(self, scorer_team: str):
         self.ball_possession_team = scorer_team
-
         if scorer_team == T1:
+            if self.last_player_touched in self.t1.on_field:
+                player_statics = self.t1.players_statistics[self.last_player_touched]
+                player_statics.points += 1
+                if self.general_touches <= 1:
+                    player_statics.aces += 1
             self.t1_score += 1
+            if self.t1_score == 25:
+                team_statics = self.t1.statistics
+                team_statics.sets += 1
             self.points_history.append(
                 {"team": T1, "score": self.t1_score, "set": self.current_set}
             )
         else:
+            if self.last_player_touched in self.t2.on_field:
+                player_statics = self.t2.players_statistics[self.last_player_touched]
+                player_statics.points += 1
+                if self.general_touches <= 1:
+                    player_statics.aces += 1
             self.t2_score += 1
+            if self.t2_score == 25:
+                team_statics = self.t2.statistics
+                team_statics.sets += 1
             self.points_history.append(
                 {"team": T2, "score": self.t2_score, "set": self.current_set}
             )
