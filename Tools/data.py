@@ -4,7 +4,7 @@ from .line_up import LineUp
 from .player_data import PlayerData
 
 
-class StatisticsPlayer:
+class PlayerStatistics:
     """
     Estadísticas para un jugador individual de voleibol.
     """
@@ -12,44 +12,45 @@ class StatisticsPlayer:
     def __init__(self):
         self.points: int = 0  # Puntos anotados
         self.attacks: int = 0  # Ataques realizados
-        self.kills: int = 0  # Ataques exitosos que resultan en punto
         self.errors: int = 0  # Errores cometidos
         self.blocks: int = 0  # Bloqueos exitosos
         self.aces: int = 0  # Servicios directos (aces)
         self.digs: int = 0  # Defensas exitosas (digs)
         self.receives: int = 0  # Recepciones exitosas
         self.serves: int = 0  # Servicios realizados
-        self.assists: int = 0  # Asistencias (colocaciones exitosas)
-        self.rotations: int = 0  # Rotaciones en las que participó
-        self.minutes_played: int = 0  # Minutos jugados
         self.sets: int = 0  # Sets efectivos
 
+        # Estadísticas totales
+        self.total_attacks: int = 0  # Ataques totales
+        self.total_blocks: int = 0  # Bloqueos totales
+        self.total_aces: int = 0  # Aces totales
+        self.total_digs: int = 0
+        self.total_receives: int = 0
+        self.total_serves: int = 0
+        self.total_sets: int = 0
+        self.total_points: int = 0
 
-class StatisticsTeam:
+
+class TeamStatistics:
     """
     Estadísticas de equipo para un partido de voleibol.
     """
 
     def __init__(self, team_name: str):
         self.team_name: str = team_name
+
         self.points: int = 0  # Puntos totales anotados por el equipo
         self.aces: int = 0  # Aces totales del equipo
         self.errors: int = 0  # Errores totales del equipo
         self.blocks: int = 0  # Bloqueos totales del equipo
         self.digs: int = 0  # Digs totales del equipo
-        self.assists: int = 0  # Asistencias totales del equipo
         self.attacks: int = 0  # Ataques totales del equipo
-        self.kills: int = 0  # Kills totales del equipo
-        self.rotations: int = 0  # Número de rotaciones realizadas
         self.substitutions: int = 0  # Número de sustituciones realizadas
         self.serves: int = 0  # Servicios totales del equipo
         self.sets_won: int = 0  # Sets ganados por el equipo
         self.sets_lost: int = 0  # Sets perdidos por el equipo
         self.receives: int = 0  # Recepciones totales del equipo
         self.sets: int = 0  # Sets efectivos del equipo
-        self.lineup: List[int] = (
-            []
-        )  # Lista de dorsales de los jugadores en la alineación
 
 
 class TeamData:
@@ -59,10 +60,10 @@ class TeamData:
 
     def __init__(self, name: str, players: List[PlayerData]) -> None:
         self.name = name
-        self.line_up: LineUp = None
+        self.line_up: None | LineUp = None
         self.data: Dict[int, PlayerData] = {}  # Mapea dorsal a datos del jugador
-        self.statistics: StatisticsTeam = StatisticsTeam(name)
-        self.players_statistics: Dict[int, StatisticsPlayer] = {}
+        self.statistics: TeamStatistics = TeamStatistics(name)
+        self.players_statistics: Dict[int, PlayerStatistics] = {}
         self.time_outs: int = 2
 
         self.on_field: Set[int] = set([])  # Jugadores en cancha (dorsales)
@@ -76,16 +77,16 @@ class TeamData:
         )  # Historial de sustituciones (dorsal_in, dorsal_out)
 
         for player in players:
-            self.players_statistics[player.dorsal] = StatisticsPlayer()
+            self.players_statistics[player.dorsal] = PlayerStatistics()
             self.data[player.dorsal] = player
 
     def reset(self):
         """
         Reinicia las estadísticas del equipo y de los jugadores.
         """
-        self.statistics = StatisticsTeam(self.name)
+        self.statistics = TeamStatistics(self.name)
         for player_dorsal in self.data.keys():
-            self.players_statistics[player_dorsal] = StatisticsPlayer()
+            self.players_statistics[player_dorsal] = PlayerStatistics()
 
     def to_json(self) -> dict:
         """

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from random import random
 from typing import List, Tuple
 
-from Tools.data import PlayerData, StatisticsPlayer, StatisticsTeam
+from Tools.data import PlayerData, PlayerStatistics, TeamStatistics
 from Tools.enum import T1, T2
 from Tools.game import Game
 
@@ -51,13 +51,13 @@ class Action(ABC):
         else:
             return self.game.t2.data[self.player]
 
-    def get_statistics(self) -> StatisticsTeam:
+    def get_statistics(self) -> TeamStatistics:
         if self.team == T1:
             return self.game.t1.statistics
         else:
             return self.game.t2.statistics
 
-    def get_player_statistics(self) -> StatisticsPlayer:
+    def get_player_statistics(self) -> PlayerStatistics:
         if self.team == T1:
             return self.game.t1.players_statistics[self.player]
         else:
@@ -85,15 +85,8 @@ class Receive(Action):
         self.success: bool = False
 
     def execute(self):
-        # Actualizar estadísticas del equipo y del jugador
         self.game_copy = copy.deepcopy(self.game)
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
 
-        team_stats.receives += 1
-        player_stats.receives += 1
-
-        # Determinar si la recepción es exitosa
         receiving_skill = self.get_player_data().p_receive
         self.success = random() <= receiving_skill
 
@@ -117,15 +110,8 @@ class Serve(Action):
     def execute(self):
         # Actualizar estadísticas del equipo y del jugador
         self.game_copy = copy.deepcopy(self.game)
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.serves += 1
-        player_stats.serves += 1
-
         serving_skill = self.get_player_data().p_serve
 
-        # TODO: Improve formula having in account the position where the player wants the ball
         self.success = random() <= serving_skill
 
     def rollback(self):
@@ -147,12 +133,6 @@ class Dig(Action):
 
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.digs += 1
-        player_stats.digs += 1
-
         digging_skill = self.get_player_data().p_dig
         self.success = random() <= digging_skill
 
@@ -174,11 +154,6 @@ class Set(Action):
 
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
-        team_stats = self.get_statistics()
-        self.get_player_statistics()
-
-        team_stats.sets_won += 1
-
         setting_skill = self.get_player_data().p_set
         self.success = random() <= setting_skill
 
@@ -200,12 +175,6 @@ class Attack(Action):
 
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.attacks += 1
-        player_stats.attacks += 1
-
         attacking_skill = self.get_player_data().p_attack
         self.success = random() <= attacking_skill
 
@@ -227,13 +196,6 @@ class Block(Action):
 
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
-
-        team_stats = self.get_statistics()
-        player_stats = self.get_player_statistics()
-
-        team_stats.blocks += 1
-        player_stats.blocks += 1
-
         blocking_skill = self.get_player_data().p_block
         self.success = random() <= blocking_skill
 
@@ -409,7 +371,7 @@ class RestoreLineupAction(Action):
 
 
 class Dispatch:
-    def __init__(self, game: Game) -> None:
+    def __init__(self, _: Game) -> None:
         self.stack: List[Action] = []
         self.lazy_stack: List[Action | LazyAction] = []
         # self.game = game
@@ -485,9 +447,12 @@ class Dispatch:
     def move_trigger(self, action: Move):
         pass
 
-    def serve_trigger(self, action: Serve):
+    @staticmethod
+    def serve_trigger(action: Serve):
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
+        team_stats = action.get_player_statistics()
+        player_stats = action.get_player_statistics()
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
@@ -496,6 +461,11 @@ class Dispatch:
             )
             player.errors += 1
             action.game.rally_over = True
+            player_stats.total_serves += 1
+            player_stats.errors += 1
+            team_stats.errors += 1
+
+
         else:
             action.game.has_ball_landed = False
             action.game.field.move_ball(action.src, action.dest)
@@ -503,17 +473,31 @@ class Dispatch:
             action.game.touches[action.team] += 1
             action.game.ball_possession_team = T1 if action.team == T2 else T2
 
-    def receive_trigger(self, action: Receive):
+            #
+            player_stats.total_serves += 1
+            player_stats.serves += 1
+            team_stats.serves += 1
+
+    @staticmethod
+    def receive_trigger(action: Receive):
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
+        team_stats = action.get_statistics()
+        player_stats = action.get_player_statistics()
+
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
                 if action.team == T1
                 else action.game.t2.get_player(action.player)
             )
-            player.errors += 1
             action.game.rally_over = True
+            # stats
+            player.errors += 1
+            player_stats.errors += 1
+            team_stats.errors += 1
+            player_stats.total_receives += 1
+
         else:
             ball_crossed_net = action.game.field.move_ball(action.src, action.dest)
             if ball_crossed_net:
@@ -523,16 +507,29 @@ class Dispatch:
             action.game.has_ball_landed = False
             action.game.touches[action.team] += 1
 
-    def set_trigger(self, action: Set):
+            # stats 
+            player_stats.total_receives += 1
+            player_stats.receives += 1
+            team_stats.receives += 1
+
+    @staticmethod
+    def set_trigger(action: Set):
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
+
+        team_stats = action.get_statistics()
+        player_stats = action.get_player_statistics()
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
                 if action.team == T1
                 else action.game.t2.get_player(action.player)
             )
+            # stats
             player.errors += 1
+            player_stats.errors += 1
+            team_stats.errors += 1
+
             action.game.rally_over = True
 
         else:
@@ -541,17 +538,30 @@ class Dispatch:
             action.game.general_touches += 1
             action.game.touches[action.team] += 1
 
-    def attack_trigger(self, action: Attack):
+            # stats
+            player_stats.total_sets += 1
+            player_stats.sets += 1
+            team_stats.sets += 1
+
+    @staticmethod
+    def attack_trigger(action: Attack):
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
+        team_stats = action.get_statistics()
+        player_stats = action.get_player_statistics()
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
                 if action.team == T1
                 else action.game.t2.get_player(action.player)
             )
-            player.errors += 1
             action.game.rally_over = True
+
+            # stats
+            player.errors += 1
+            player_stats.errors += 1
+            team_stats.errors += 1
+            player_stats.total_attacks += 1
 
         else:
             action.game.has_ball_landed = False
@@ -561,7 +571,15 @@ class Dispatch:
             action.game.touches[action.team] = 0
             action.game.ball_possession_team = T1 if action.team == T2 else T2
 
-    def block_trigger(self, action: Block):
+            # stats
+            player_stats.total_attacks += 1
+            player_stats.attacks += 1
+            team_stats.attacks += 1
+
+    @staticmethod
+    def block_trigger(action: Block):
+        team_stats = action.get_statistics()
+        player_stats = action.get_player_statistics()
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
@@ -569,7 +587,10 @@ class Dispatch:
                 else action.game.t2.get_player(action.player)
             )
             player.errors += 1
-            return
+            player_stats.errors += 1
+            team_stats.errors += 1
+            player_stats.total_blocks += 1
+
         else:
             action.game.has_ball_landed = False
             action.game.last_player_touched = action.player
@@ -577,18 +598,32 @@ class Dispatch:
             action.game.field.move_ball(action.src, action.dest)
             action.game.general_touches += 1
 
-    def dig_trigger(self, action: Dig):
+            # stats
+            player_stats.total_blocks += 1
+            player_stats.blocks += 1
+            team_stats.blocks += 1
+
+    @staticmethod
+    def dig_trigger(action: Dig):
         action.game.last_player_touched = action.player
         action.game.last_team_touched = action.team
         action.game.general_touches += 1
+        player_stats = action.get_player_statistics()
+        team_stats = action.get_statistics()
         if not action.success:
             player = (
                 action.game.t1.get_player(action.player)
                 if action.team == T1
                 else action.game.t2.get_player(action.player)
             )
-            player.errors += 1
             action.game.rally_over = True
+            # stats
+            player.errors += 1
+            player_stats.errors += 1
+            team_stats.errors += 1
+            player_stats.total_digs += 1
+
+
         else:
             action.game.has_ball_landed = False
             ball_crossed_net = action.game.field.move_ball(action.src, action.dest)
@@ -597,6 +632,10 @@ class Dispatch:
                 action.game.ball_possession_team = T1 if action.team == T2 else T2
             else:
                 action.game.touches[action.team] += 1
+            # stats
+            player_stats.total_digs += 1
+            player_stats.digs += 1
+            team_stats.digs += 1
 
     def rollback(self):
         # Deshacer la última acción
