@@ -2,11 +2,10 @@
 
 from abc import ABC, abstractmethod
 from random import choice
-from typing import List, Tuple
+from typing import List
 
-from Tools.enum import T1, T2, PlayerRole
+from Tools.enum import T1
 from Tools.game import Game
-
 from .actions import (Action, ManagerCelebrate, ManagerNothing, Substitution,
                       Timeout)
 from .simulator_agent import SimulatorAgent
@@ -86,9 +85,9 @@ class ActionRandomStrategy(ManagerActionStrategy):
 class ActionSimulateStrategy(ManagerActionStrategy):
 
     def action(self, team: str, simulator: SimulatorAgent) -> Action:
-        print(
-            f"El entrenador del equipo {simulator.game.t1.name if team == T1 else simulator.game.t2.name} está pensando..."
-        )
+        # print(
+        #     f"El entrenador del equipo {simulator.game.t1.name if team == T1 else simulator.game.t2.name} está pensando..."
+        # )
 
         game = simulator.game
         team_score = game.t1_score if team == T1 else game.t2_score
