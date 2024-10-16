@@ -1,9 +1,11 @@
 ﻿from random import choice
 from typing import Callable
 
+from Tools.enum import dict_t1
 from .actions import *
 from .bdiagent import BdiAgent
 from .behavior import Behavior, RandomBehavior, Defensive, ReturnToPosition, Ofensive
+from .fuzzy_rules import DefensivePositionFuzzySystem, OffensivePositionFuzzySystem
 from .simulator_agent import SimulatorAgent
 
 
@@ -153,26 +155,76 @@ class MinimaxStrategy(PlayerStrategy):
 
 
 class GameEvaluator:
+    def __init__(self):
+        self.defensive_fuzzy = DefensivePositionFuzzySystem()
+        self.offensive_fuzzy = OffensivePositionFuzzySystem()
+
     def eval(self, game: Game, team: str) -> float:
+        """
+        Evalúa el estado actual del juego desde la perspectiva del equipo especificado.
+        """
         opponent_team = T1 if team == T2 else T2
 
+        # Diferencia de puntos
         score_diff = game.get_team_score(team) - game.get_team_score(opponent_team)
-
-        set_diff = game.get_team_sets(team) - game.get_team_score(opponent_team)
-
+        set_diff = game.get_team_sets(team) - game.get_team_sets(opponent_team)
         ball_possession = 1 if game.ball_possession_team == team else -1
-
         touches_left = 3 - game.touches[team]
-
         ball_on_our_side = 1 if game.is_ball_on_our_side(team) else -1
 
-        # Valor total
+        avg_defensive_score = self.avg_defensive_position(self, game, team) / 100  # Normalizar entre 0 y 1
+        avg_offensive_score = self.avg_offensive_position(self, game, team) / 100  # Normalizar entre 0 y 1
+
         value = (
                 set_diff * 100000
                 + score_diff * 100
                 + ball_possession * 50
                 + touches_left * 20
                 + ball_on_our_side * 30
+                + avg_defensive_score * 100
+                + avg_offensive_score * 100
         )
 
         return value
+
+    @staticmethod
+    def avg_defensive_position(self, game: Game, team: str) -> float:
+        avg = 0
+        count = 0
+        for player in game.get_players(team):
+            player_position = game.field.find_player(player, team)
+            ideal_position = dict_t1[player_position.position] if team == T1 else player_position.position
+            player_position = player_position.row, player_position.col
+            player_role = game.t1.get_player_role(player) if team == T1 else game.t2.get_player_role(player)
+            ball_position = game.field.find_ball()
+            ball_position = ball_position.row, ball_position.col
+            distance_to_position = game.field.distance(player_position, ideal_position)
+            distance_to_ball = game.field.distance(player_position, ball_position)
+
+            defensive_score = self.defensive_fuzzy.evaluate(distance_to_position, distance_to_ball, player_role)
+
+            avg += defensive_score
+            count += 1
+
+        return avg / count if count > 0 else 0
+
+    @staticmethod
+    def avg_offensive_position(self, game: Game, team: str) -> float:
+        avg = 0
+        count = 0
+        for player in game.get_players(team):
+            player_position = game.field.find_player(player, team)
+            ideal_position = dict_t1[player_position.position] if team == T1 else player_position.position
+            player_position = player_position.row, player_position.col
+            player_role = game.t1.get_player_role(player) if team == T1 else game.t2.get_player_role(player)
+            ball_position = game.field.find_ball()
+            ball_position = ball_position.row, ball_position.col
+            distance_to_position = game.field.distance(player_position, ideal_position)
+            distance_to_ball = game.field.distance(player_position, ball_position)
+
+            defensive_score = self.defensive_fuzzy.evaluate(distance_to_position, distance_to_ball, player_role)
+
+            avg += defensive_score
+            count += 1
+
+        return avg / count if count > 0 else 0

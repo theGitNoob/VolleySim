@@ -322,3 +322,6 @@ class Game:
 
     def get_team_sets(self, team: str):
         return self.t1_sets if team == T1 else self.t1_sets
+
+    def get_players(self, team):
+        return self.t1.on_field if team == T1 else self.t2.on_field
