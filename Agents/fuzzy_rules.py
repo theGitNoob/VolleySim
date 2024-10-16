@@ -3,132 +3,197 @@ import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 
-def fuzzy_defensive_position():
-    # Definir los universos de discurso para las variables de entrada y salida
-    distance_to_position = ctrl.Antecedent(
-        np.arange(0, 18.1, 0.1), "distance_to_position"
-    )  # Distancia en metros
-    distance_to_ball = ctrl.Antecedent(np.arange(0, 18.1, 0.1), "distance_to_ball")
-    player_role = ctrl.Antecedent(np.arange(0, 5, 1), "player_role")
-    defensive_position = ctrl.Consequent(np.arange(0, 101, 1), "defensive_position")
+class DefensivePositionFuzzySystem:
+    def __init__(self):
+        self.distance_to_position = ctrl.Antecedent(np.arange(0, 18, 1), 'distance_to_position')  # 0-20 metros
+        self.distance_to_ball = ctrl.Antecedent(np.arange(0, 18, 1), 'distance_to_ball')  # 0-20 metros
+        self.player_role = ctrl.Antecedent(np.arange(0, 5, 1), 'player_role')  # 0-4 roles
+        self.defensive_position = ctrl.Consequent(np.arange(0, 101, 1), 'defensive_position')  # 0-100
 
-    # Definir las funciones de membresía para distance_to_position
-    distance_to_position["close"] = fuzz.trimf(distance_to_position.universe, [0, 0, 6])
-    distance_to_position["medium"] = fuzz.trimf(
-        distance_to_position.universe, [4, 9, 14]
-    )
-    distance_to_position["far"] = fuzz.trimf(
-        distance_to_position.universe, [12, 18, 18]
-    )
+        self.distance_to_position['low'] = fuzz.trimf(self.distance_to_position.universe, [0, 0, 3])
+        self.distance_to_position['medium'] = fuzz.trimf(self.distance_to_position.universe, [2, 7, 11])
+        self.distance_to_position['high'] = fuzz.trimf(self.distance_to_position.universe, [10, 18, 18])
 
-    # Definir las funciones de membresía para distance_to_ball
-    distance_to_ball["close"] = fuzz.trimf(distance_to_ball.universe, [0, 0, 6])
-    distance_to_ball["medium"] = fuzz.trimf(distance_to_ball.universe, [4, 9, 14])
-    distance_to_ball["far"] = fuzz.trimf(distance_to_ball.universe, [12, 18, 18])
+        self.distance_to_ball['low'] = fuzz.trimf(self.distance_to_ball.universe, [0, 0, 3])
+        self.distance_to_ball['medium'] = fuzz.trimf(self.distance_to_ball.universe, [2, 7, 11])
+        self.distance_to_ball['high'] = fuzz.trimf(self.distance_to_ball.universe, [10, 18, 18])
 
-    # Definir las funciones de membresía para player_role
-    player_role["setter"] = fuzz.trimf(player_role.universe, [0, 0, 0])
-    player_role["middle_blocker"] = fuzz.trimf(player_role.universe, [1, 1, 1])
-    player_role["outside_hitter"] = fuzz.trimf(player_role.universe, [2, 2, 2])
-    player_role["opposite"] = fuzz.trimf(player_role.universe, [3, 3, 3])
-    player_role["libero"] = fuzz.trimf(player_role.universe, [4, 4, 4])
+        self.player_role['L'] = fuzz.trimf(self.player_role.universe, [0, 0, 1])
+        self.player_role['S'] = fuzz.trimf(self.player_role.universe, [0, 1, 2])
+        self.player_role['MB'] = fuzz.trimf(self.player_role.universe, [1, 2, 3])
+        self.player_role['OH'] = fuzz.trimf(self.player_role.universe, [2, 3, 4])
+        self.player_role['O'] = fuzz.trimf(self.player_role.universe, [3, 4, 4])
 
-    # Definir las funciones de membresía para defensive_position
-    defensive_position["bad"] = fuzz.trimf(defensive_position.universe, [0, 0, 50])
-    defensive_position["normal"] = fuzz.trimf(defensive_position.universe, [25, 50, 75])
-    defensive_position["good"] = fuzz.trimf(defensive_position.universe, [50, 100, 100])
+        self.defensive_position['bad'] = fuzz.trimf(self.defensive_position.universe, [0, 0, 50])
+        self.defensive_position['normal'] = fuzz.trimf(self.defensive_position.universe, [25, 50, 75])
+        self.defensive_position['good'] = fuzz.trimf(self.defensive_position.universe, [50, 100, 100])
 
-    # Definir las reglas
-    rule1 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["libero"], defensive_position["good"]
-    )
-    rule2 = ctrl.Rule(
-        distance_to_ball["far"] & player_role["middle_blocker"],
-        defensive_position["normal"],
-    )
-    rule3 = ctrl.Rule(distance_to_position["far"], defensive_position["bad"])
-    rule4 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["outside_hitter"],
-        defensive_position["normal"],
-    )
-    rule5 = ctrl.Rule(
-        distance_to_ball["medium"] & player_role["setter"], defensive_position["normal"]
-    )
-    rule6 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["middle_blocker"],
-        defensive_position["good"],
-    )
-    # Puedes agregar más reglas según las necesidades
+        self.rules = [
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['L'], self.defensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['S'], self.defensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['MB'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['OH'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['O'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['L'], self.defensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['S'], self.defensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['O'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['L'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['S'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['MB'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['OH'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['O'], self.defensive_position['bad']),
 
-    # Crear el sistema de control y la simulación
-    defensive_position_ctrl = ctrl.ControlSystem(
-        [rule1, rule2, rule3, rule4, rule5, rule6]
-    )
-    defensive_positioning = ctrl.ControlSystemSimulation(defensive_position_ctrl)
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['L'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['S'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['MB'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['OH'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['O'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['L'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['S'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['O'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['L'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['S'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['MB'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['OH'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['O'], self.defensive_position['bad']),
 
-    return defensive_positioning
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['L'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['S'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['MB'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['OH'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['O'], self.defensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['L'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['S'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['O'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['L'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['S'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['MB'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['OH'], self.defensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['O'], self.defensive_position['bad']),
+        ]
+
+        self.defensive_position_ctrl = ctrl.ControlSystem(self.rules)
+        self.simulation = ctrl.ControlSystemSimulation(self.defensive_position_ctrl)
+
+    def evaluate(self, distance_to_position, distance_to_ball, player_role):
+        self.simulation.input['distance_to_position'] = distance_to_position
+        self.simulation.input['distance_to_ball'] = distance_to_ball
+        self.simulation.input['player_role'] = get_role_number(player_role)
+
+        self.simulation.compute()
+
+        return self.simulation.output['defensive_position']
 
 
-def fuzzy_offensive_position():
-    # Definir los universos de discurso para las variables de entrada y salida
-    distance_to_position = ctrl.Antecedent(
-        np.arange(0, 18.1, 0.1), "distance_to_position"
-    )
-    distance_to_ball = ctrl.Antecedent(np.arange(0, 18.1, 0.1), "distance_to_ball")
-    player_role = ctrl.Antecedent(np.arange(0, 5, 1), "player_role")
-    offensive_position = ctrl.Consequent(np.arange(0, 101, 1), "offensive_position")
+class OffensivePositionFuzzySystem:
+    def __init__(self):
+        self.distance_to_position = ctrl.Antecedent(np.arange(0, 21, 1), 'distance_to_position')  # 0-20 metros
+        self.distance_to_net = ctrl.Antecedent(np.arange(0, 21, 1), 'distance_to_net')  # 0-20 metros
+        self.distance_to_ball = ctrl.Antecedent(np.arange(0, 21, 1), 'distance_to_ball')  # 0-20 metros
+        self.player_role = ctrl.Antecedent(np.arange(0, 5, 1), 'player_role')  # 0-4 roles
+        self.offensive_position = ctrl.Consequent(np.arange(0, 101, 1), 'offensive_position')  # 0-100
 
-    # Definir las funciones de membresía para distance_to_position
-    distance_to_position["close"] = fuzz.trimf(distance_to_position.universe, [0, 0, 6])
-    distance_to_position["medium"] = fuzz.trimf(
-        distance_to_position.universe, [4, 9, 14]
-    )
-    distance_to_position["far"] = fuzz.trimf(
-        distance_to_position.universe, [12, 18, 18]
-    )
+        self.distance_to_position['low'] = fuzz.trimf(self.distance_to_position.universe, [0, 0, 5])
+        self.distance_to_position['medium'] = fuzz.trimf(self.distance_to_position.universe, [4, 10, 16])
+        self.distance_to_position['high'] = fuzz.trimf(self.distance_to_position.universe, [15, 20, 20])
 
-    # Definir las funciones de membresía para distance_to_ball
-    distance_to_ball["close"] = fuzz.trimf(distance_to_ball.universe, [0, 0, 6])
-    distance_to_ball["medium"] = fuzz.trimf(distance_to_ball.universe, [4, 9, 14])
-    distance_to_ball["far"] = fuzz.trimf(distance_to_ball.universe, [12, 18, 18])
+        self.distance_to_net['close'] = fuzz.trimf(self.distance_to_net.universe, [0, 0, 3])
+        self.distance_to_net['medium'] = fuzz.trimf(self.distance_to_net.universe, [2, 5, 8])
+        self.distance_to_net['far'] = fuzz.trimf(self.distance_to_net.universe, [7, 20, 20])
 
-    # Definir las funciones de membresía para player_role
-    player_role["setter"] = fuzz.trimf(player_role.universe, [0, 0, 0])
-    player_role["middle_blocker"] = fuzz.trimf(player_role.universe, [1, 1, 1])
-    player_role["outside_hitter"] = fuzz.trimf(player_role.universe, [2, 2, 2])
-    player_role["opposite"] = fuzz.trimf(player_role.universe, [3, 3, 3])
-    player_role["libero"] = fuzz.trimf(player_role.universe, [4, 4, 4])
+        self.distance_to_ball['low'] = fuzz.trimf(self.distance_to_ball.universe, [0, 0, 5])
+        self.distance_to_ball['medium'] = fuzz.trimf(self.distance_to_ball.universe, [4, 10, 16])
+        self.distance_to_ball['high'] = fuzz.trimf(self.distance_to_ball.universe, [15, 20, 20])
 
-    # Definir las funciones de membresía para offensive_position
-    offensive_position["bad"] = fuzz.trimf(offensive_position.universe, [0, 0, 50])
-    offensive_position["normal"] = fuzz.trimf(offensive_position.universe, [25, 50, 75])
-    offensive_position["good"] = fuzz.trimf(offensive_position.universe, [50, 100, 100])
+        self.player_role['L'] = fuzz.trimf(self.player_role.universe, [0, 0, 1])
+        self.player_role['S'] = fuzz.trimf(self.player_role.universe, [0, 1, 2])
+        self.player_role['MB'] = fuzz.trimf(self.player_role.universe, [1, 2, 3])
+        self.player_role['OH'] = fuzz.trimf(self.player_role.universe, [2, 3, 4])
+        self.player_role['O'] = fuzz.trimf(self.player_role.universe, [3, 4, 4])
 
-    # Definir las reglas
-    rule1 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["setter"], offensive_position["good"]
-    )
-    rule2 = ctrl.Rule(
-        distance_to_ball["far"] & player_role["libero"], offensive_position["bad"]
-    )
-    rule3 = ctrl.Rule(distance_to_position["far"], offensive_position["bad"])
-    rule4 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["outside_hitter"],
-        offensive_position["good"],
-    )
-    rule5 = ctrl.Rule(
-        distance_to_ball["medium"] & player_role["middle_blocker"],
-        offensive_position["normal"],
-    )
-    rule6 = ctrl.Rule(
-        distance_to_ball["close"] & player_role["opposite"], offensive_position["good"]
-    )
-    # Puedes agregar más reglas según las necesidades
+        self.offensive_position['bad'] = fuzz.trimf(self.offensive_position.universe, [0, 0, 50])
+        self.offensive_position['normal'] = fuzz.trimf(self.offensive_position.universe, [25, 50, 75])
+        self.offensive_position['good'] = fuzz.trimf(self.offensive_position.universe, [50, 100, 100])
 
-    # Crear el sistema de control y la simulación
-    offensive_position_ctrl = ctrl.ControlSystem(
-        [rule1, rule2, rule3, rule4, rule5, rule6]
-    )
-    offensive_positioning = ctrl.ControlSystemSimulation(offensive_position_ctrl)
+        self.rules = [
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['L'], self.offensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['S'], self.offensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['MB'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['OH'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['low'] & self.player_role['O'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['L'], self.offensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['S'], self.offensive_position['good']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['medium'] & self.player_role['O'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['L'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['S'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['MB'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['OH'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['low'] & self.distance_to_ball['high'] & self.player_role['O'], self.offensive_position['bad']),
 
-    return offensive_positioning
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['L'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['S'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['MB'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['OH'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['low'] & self.player_role['O'], self.offensive_position['good']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['L'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['S'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['medium'] & self.player_role['O'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['L'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['S'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['MB'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['OH'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['medium'] & self.distance_to_ball['high'] & self.player_role['O'], self.offensive_position['bad']),
+
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['L'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['S'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['MB'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['OH'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['low'] & self.player_role['O'], self.offensive_position['normal']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['L'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['S'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['MB'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['OH'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['medium'] & self.player_role['O'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['L'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['S'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['MB'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['OH'], self.offensive_position['bad']),
+            ctrl.Rule(self.distance_to_position['high'] & self.distance_to_ball['high'] & self.player_role['O'], self.offensive_position['bad']),
+        ]
+
+        self.offensive_position_ctrl = ctrl.ControlSystem(self.rules)
+        self.simulation = ctrl.ControlSystemSimulation(self.offensive_position_ctrl)
+
+    def evaluate(self, distance_to_position, distance_to_net, distance_to_ball, player_role):
+        self.simulation.input['distance_to_position'] = distance_to_position
+        self.simulation.input['distance_to_net'] = distance_to_net
+        self.simulation.input['distance_to_ball'] = distance_to_ball
+        self.simulation.input['player_role'] = get_role_number(player_role)
+
+        self.simulation.compute()
+
+        return self.simulation.output['offensive_position']
+
+
+def get_role_number(role):
+    if role == 'L':
+        return 0
+    if role == 'S':
+        return 1
+    if role == 'MB':
+        return 2
+    if role == 'OH':
+        return 3
+    if role == 'O':
+        return 4
+    return -1
