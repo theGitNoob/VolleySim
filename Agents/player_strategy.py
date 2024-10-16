@@ -160,8 +160,12 @@ class GameEvaluator:
         self.offensive_fuzzy = OffensivePositionFuzzySystem()
 
     def eval(self, game: Game, team: str) -> float:
+        """
+        Evalúa el estado actual del juego desde la perspectiva del equipo especificado.
+        """
         opponent_team = T1 if team == T2 else T2
 
+        # Diferencia de puntos
         score_diff = game.get_team_score(team) - game.get_team_score(opponent_team)
         set_diff = game.get_team_sets(team) - game.get_team_sets(opponent_team)
         ball_possession = 1 if game.ball_possession_team == team else -1
