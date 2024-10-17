@@ -5,9 +5,7 @@ class SimulationAnalyzer:
     def __init__(self, file_path) -> None:
         self.name = file_path.split('/')[-1].split('.')[0]
         self.file_path = file_path
-        self.load_data()
         self.games = []
-        self.data = None
 
     def load_data(self):
         with open(self.file_path, 'r') as file:
@@ -15,6 +13,7 @@ class SimulationAnalyzer:
         self.data = data
 
     def analyze(self):
+        self.load_data()
         for game_data in self.data.values():
             self.analyze_game(game_data)
 
@@ -45,4 +44,5 @@ class TeamDataAnalyzer:
         self.errors = team_data['statistics']['errors']
         self.points = team_data['statistics']['points']
         self.substitutions = team_data['statistics']['substitutions']
+        self.sets = team_data['statistics']['sets']
         self.team_data = team_data
