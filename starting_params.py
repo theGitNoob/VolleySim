@@ -43,16 +43,6 @@ smart_line_up = StartingParams(
     'smart_line_up'
 )
 #
-smart_vs_random_line_up = StartingParams(
-    SimulationParams(
-        team_names,
-        (LineUpStandardStrategy(), LineUpStandardStrategy()),
-        (ActionRandomStrategy(), ActionRandomStrategy()),
-        (RandomStrategy(), RandomStrategy())
-    ),
-    'smart_vs_random_line_up'
-)
-#
 smart_action = StartingParams(
     SimulationParams(
         team_names,
