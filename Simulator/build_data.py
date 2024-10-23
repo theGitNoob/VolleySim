@@ -2,6 +2,7 @@ from typing import List
 
 from pandas import DataFrame
 
+from Agents.bdiagent import BdiAgent
 from Agents.manager_agent import Manager
 from Agents.player_agent import Player
 from Agents.team import TeamAgent
@@ -29,10 +30,21 @@ def conf_game(params: SimulationParams, df: DataFrame) -> VolleyballSimulation:
     T2_data = TeamData(T2_n, T2_players)
 
     T1_players_agents = {
-        player.dorsal: Player(player.dorsal, T1, T1_player) for player in T1_players
+        player.dorsal: (
+            Player(player.dorsal, T1, T1_player)
+            if T1_player is not None
+            else BdiAgent(player.dorsal, T1)
+        )
+        for player in T1_players
     }
+
     T2_players_agents = {
-        player.dorsal: Player(player.dorsal, T2, T2_player) for player in T2_players
+        player.dorsal: (
+            Player(player.dorsal, T2, T2_player)
+            if T2_player is not None
+            else BdiAgent(player.dorsal, T2)
+        )
+        for player in T2_players
     }
 
     T1_manager = Manager(t1_line_up, T1_action, T1)

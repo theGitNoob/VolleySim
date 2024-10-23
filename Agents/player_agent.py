@@ -2,13 +2,12 @@
 
 from Agents.simulator_agent import SimulatorAgent
 from Tools.field import *
-
 from .actions import *
 from .player_strategy import PlayerStrategy, VolleyballStrategy
 
 
 class Player:
-    def __init__(self, dorsal: int, team: str, strategy: PlayerStrategy) -> None:
+    def __init__(self, dorsal: int, team: str, strategy: PlayerStrategy | None) -> None:
         self.strategy = strategy
         self.heuristic_strategy = VolleyballStrategy()
         self.dorsal = dorsal
@@ -42,32 +41,32 @@ class Player:
 
     @staticmethod
     def empty_adjacent_grids(
-        visible_grids: List[GridField], p_grid: GridField
+            visible_grids: List[GridField], p_grid: GridField
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if (
-                1 < Field.distance((g.row, g.col), (p_grid.row, p_grid.col)) <= 2
-                and g.is_empty()
-                and g.team == p_grid.team
+                    1 < Field.distance((g.row, g.col), (p_grid.row, p_grid.col)) <= 2
+                    and g.is_empty()
+                    and g.team == p_grid.team
             ):
                 yield g
 
     def friendly_grids(
-        self, visible_grids: List[GridField]
+            self, visible_grids: List[GridField]
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if g.team == self.team and not g.is_net:
                 yield g
 
     def enemy_grids(
-        self, visible_grids: List[GridField]
+            self, visible_grids: List[GridField]
     ) -> Generator[GridField, None, None]:
         for g in visible_grids:
             if g.team != self.team and not g.is_net:
                 yield g
 
     def construct_actions(
-        self, game: Game, visible_grids: List[GridField], p_grid: GridField
+            self, game: Game, visible_grids: List[GridField], p_grid: GridField
     ) -> List[Action]:
         actions: List[Action] = [Nothing(self.dorsal, self.team, game)]
 
