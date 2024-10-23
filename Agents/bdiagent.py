@@ -111,22 +111,79 @@ class BdiAgent(Player):
 
     def brf(self, game: Game, verbose: bool = False):
         """
-        The Beliefs  Revision Function updates agent's beliefs based on the current state of the game.
-        param verbose: If True, the function will print the beliefs that have been updated.
+        La función de revisión de creencias actualiza las creencias del agente
+        basadas en el estado actual del juego.
         """
+        # Obtener percepciones del juego
         perceptions = self.get_perceptions(game)
         self.game = game
 
-        pass
+        # Actualizar creencias basadas en percepciones
+        for belief in self.beliefs:
+            name = belief['name']
+
+            if name == 'bad_receiver':
+                # Supongamos que perceptions['bad_receivers'] es una lista de jugadores malos para recibir
+                bad_receivers = perceptions.get('bad_receivers', [])
+                belief['value'] = bad_receivers
+                belief['active'] = len(bad_receivers) > 0
+
+            elif name == 'ball_possession':
+                # Supongamos que perceptions['ball_possession'] es el jugador que tiene la pelota
+                ball_possession = perceptions.get('ball_possession', None)
+                belief['value'] = ball_possession
+                belief['active'] = ball_possession is not None
+
+            elif name == 'ball_location':
+                # Supongamos que perceptions['ball_location'] es la posición actual de la pelota
+                ball_location = perceptions.get('ball_location', None)
+                belief['value'] = ball_location
+                belief['active'] = ball_location is not None
+
+            elif name == 'good_attacker':
+                # Supongamos que perceptions['good_attackers'] es una lista de buenos atacantes
+                good_attackers = perceptions.get('good_attackers', [])
+                belief['value'] = good_attackers
+                belief['active'] = len(good_attackers) > 0
+
+            elif name == 'good_defender':
+                # Supongamos que perceptions['good_defenders'] es una lista de buenos defensores
+                good_defenders = perceptions.get('good_defenders', [])
+                belief['value'] = good_defenders
+                belief['active'] = len(good_defenders) > 0
+
+            else:
+                self.beliefs.append(Belief(name=name, value=None, active=False))
+
+            if verbose:
+                print(f"Creencia actualizada '{name}': valor={belief['value']}, activa={belief['active']}")
 
     def generate_desires(self):
         """
-        The Generate Desires Function generates the agent's desires based on its beliefs.
+        Genera los deseos del agente basados en sus creencias actuales.
         """
-        # Create new Desires
-        # for belief in self.beliefs:
-        #     handler = self.get_desire_handler_by_name(belief["name"])
-        #     self.desires.append(Desire(name=belief["name"], handler=handler))
+        self.desires = []
+
+        for belief in self.beliefs:
+            if belief['active']:
+                if belief['name'] == 'bad_receiver':
+                    handler1 = self.get_desire_handler_by_name('attack_bad_receiver')
+                    if handler1:
+                        desire1 = Desire(name='attack_bad_receiver', handler=handler1)
+                        self.desires.append(desire1)
+
+                    handler2 = self.get_desire_handler_by_name('serve_to_bad_receiver')
+                    if handler2:
+                        desire2 = Desire(name='serve_to_bad_receiver', handler=handler2)
+                        self.desires.append(desire2)
+
+                elif belief['name'] == 'good_attacker':
+                    handler = self.get_desire_handler_by_name('pass_to_good_attacker')
+                    if handler:
+                        desire = Desire(name='pass_to_good_attacker', handler=handler)
+                        self.desires.append(desire)
+                else:
+                    self.desires.append(Desire(name=belief['name'], handler=None))
 
     def generate_intentions(self):
         """
