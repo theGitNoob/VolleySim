@@ -172,7 +172,11 @@ class Attack(Action):
     def execute(self):
         self.game_copy = copy.deepcopy(self.game)
         attacking_skill = self.get_player_data().p_attack
-        self.success = random() <= attacking_skill
+
+        player_distance_to_ball = self.game.field.distance(
+            self.src, (self.game.field.find_ball().row, self.game.field.find_ball().col)
+        )
+        self.success = random() <= attacking_skill * (1 / (player_distance_to_ball + 1))
 
     def rollback(self):
         recursive_update(self.game, self.game_copy)
@@ -458,12 +462,10 @@ class Dispatch:
             player_stats.errors += 1
             team_stats.errors += 1
 
-
         else:
             action.game.has_ball_landed = False
             action.game.field.move_ball(action.src, action.dest)
             action.game.general_touches += 1
-            action.game.touches[action.team] += 1
             action.game.ball_possession_team = T1 if action.team == T2 else T2
 
             #
@@ -500,7 +502,7 @@ class Dispatch:
             action.game.has_ball_landed = False
             action.game.touches[action.team] += 1
 
-            # stats 
+            # stats
             player_stats.total_receives += 1
             player_stats.receives += 1
             team_stats.receives += 1
@@ -590,6 +592,8 @@ class Dispatch:
             action.game.last_team_touched = action.team
             action.game.field.move_ball(action.src, action.dest)
             action.game.general_touches += 1
+            action.game.touches[action.team] = 0
+            action.game.ball_possession_team = T1 if action.team == T2 else T2
 
             # stats
             player_stats.total_blocks += 1
@@ -615,7 +619,6 @@ class Dispatch:
             player_stats.errors += 1
             team_stats.errors += 1
             player_stats.total_digs += 1
-
 
         else:
             action.game.has_ball_landed = False
