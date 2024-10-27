@@ -2,7 +2,7 @@ from typing import List
 
 from pandas import DataFrame
 
-from Agents.bdiagent import BdiAgent
+from Agents.bdiagent import BdiAgent, base_rules, base_active_rules, base_beliefs_t1
 from Agents.manager_agent import Manager
 from Agents.player_agent import Player
 from Agents.team import TeamAgent
@@ -33,7 +33,7 @@ def conf_game(params: SimulationParams, df: DataFrame) -> VolleyballSimulation:
         player.dorsal: (
             Player(player.dorsal, T1, T1_player)
             if T1_player is not None
-            else BdiAgent(player.dorsal, T1)
+            else BdiAgent(player.dorsal, T1, base_rules, base_active_rules, base_beliefs_t1)
         )
         for player in T1_players
     }
@@ -42,7 +42,7 @@ def conf_game(params: SimulationParams, df: DataFrame) -> VolleyballSimulation:
         player.dorsal: (
             Player(player.dorsal, T2, T2_player)
             if T2_player is not None
-            else BdiAgent(player.dorsal, T2)
+            else BdiAgent(player.dorsal, T2, base_rules, base_active_rules)
         )
         for player in T2_players
     }

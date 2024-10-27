@@ -1,9 +1,8 @@
 ﻿from random import choice
 from typing import Callable
 
-from Tools.enum import dict_t1
+from Tools.enum import dict_t1, dict_t2
 from .actions import *
-from .bdiagent import BdiAgent
 from .behavior import Behavior, RandomBehavior, Defensive, ReturnToPosition, Ofensive
 from .fuzzy_rules import DefensivePositionFuzzySystem, OffensivePositionFuzzySystem
 from .simulator_agent import SimulatorAgent
@@ -42,9 +41,12 @@ class VolleyballStrategy(PlayerStrategy):
             possible_actions: Callable[[Game], List[Action]],
             simulator: SimulatorAgent,
     ) -> Action:
+        player = possible_actions(simulator.game)[0].player
         team = possible_actions(simulator.game)[0].team
-        agent = BdiAgent(simulator.game)
-        return agent.select_action(possible_actions, team)
+
+        from .bdiagent import BdiAgent, base_rules, base_active_rules
+        agent = BdiAgent(player, team, base_rules, base_active_rules)
+        return agent.play(simulator)
 
 
 class DefensorStrategy(BehaviorStrategy):
@@ -193,7 +195,7 @@ class GameEvaluator:
         count = 0
         for player in game.get_players(team):
             player_position = game.field.find_player(player, team)
-            ideal_position = dict_t1[player_position.position] if team == T1 else player_position.position
+            ideal_position = dict_t1[player_position.position] if team == T1 else dict_t2[player_position.position]
             player_position = player_position.row, player_position.col
             player_role = game.t1.get_player_role(player) if team == T1 else game.t2.get_player_role(player)
             ball_position = game.field.find_ball()
@@ -214,7 +216,7 @@ class GameEvaluator:
         count = 0
         for player in game.get_players(team):
             player_position = game.field.find_player(player, team)
-            ideal_position = dict_t1[player_position.position] if team == T1 else player_position.position
+            ideal_position = dict_t1[player_position.position] if team == T1 else dict_t2[player_position.position]
             player_position = player_position.row, player_position.col
             player_role = game.t1.get_player_role(player) if team == T1 else game.t2.get_player_role(player)
             ball_position = game.field.find_ball()

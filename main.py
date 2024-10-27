@@ -4,7 +4,7 @@ from time import time
 import pandas as pd
 
 from Simulator.build_data import conf_game
-from starting_params import all_random
+from starting_params import bdi_vs_minimax
 
 df = pd.read_csv("data/VNL2024Men.csv")
 # df.loc[:, df.columns.str.startswith("p_")] = 50
@@ -17,13 +17,13 @@ df["Dorsal"] = range(1, len(df) + 1)
 # * estrategia del manager local para tomar decisiones
 # * estrategia del manager visitante para tomar decisiones
 # * estrategias de los jugadores para tomar decisiones
-# 
+#
 # """
 #     ),
 #     df,
 # )
 
-params = all_random.simulation_params
+params = bdi_vs_minimax.simulation_params
 
 if params is None:
     print("No se pudo inferir los parámetros de la simulación")

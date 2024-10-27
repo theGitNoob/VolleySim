@@ -4,7 +4,6 @@ import time
 import pandas as pd
 
 from Simulator.build_data import conf_game
-from starting_params import *
 
 
 class Color:
@@ -17,16 +16,18 @@ df = pd.read_csv('./data/VNL2024Men.csv')
 df["Dorsal"] = range(1, len(df) + 1)
 
 params = [
-    all_random,
-    all_smart,
-    smart_line_up,
-    smart_vs_random_line_up,
-    smart_action,
-    smart_vs_random_action,
-    smart_player,
-    smart_vs_random_player,
-    minimax_vs_random_player,
-    minimax_vs_minimax_player
+    # all_random,
+    # all_smart,
+    # smart_line_up,
+    # smart_vs_random_line_up,
+    # smart_action,
+    # smart_vs_random_action,
+    # smart_player,
+    # smart_vs_random_player,
+    # minimax_vs_random_player,
+    # minimax_vs_minimax_player
+    # random_vs_minimax,
+    # bdi_vs_minimax
 ]
 
 initial_time = time.time()

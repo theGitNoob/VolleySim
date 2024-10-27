@@ -7,11 +7,11 @@ from Agents.player_strategy import PlayerStrategy
 
 class SimulationParams:
     def __init__(
-        self,
-        names: Tuple[str, str],
-        managers_line_up: Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy],
-        managers_action_strategy: Tuple[ManagerActionStrategy, ManagerActionStrategy],
-        players_action_strategy: Tuple[PlayerStrategy, PlayerStrategy],
+            self,
+            names: Tuple[str, str],
+            managers_line_up: Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy],
+            managers_action_strategy: Tuple[ManagerActionStrategy, ManagerActionStrategy],
+            players_action_strategy: Tuple[PlayerStrategy | None, PlayerStrategy | None],
     ) -> None:
         self.names: Tuple[str, str] = names
         self.managers_line_up: Tuple[ManagerLineUpStrategy, ManagerLineUpStrategy] = (

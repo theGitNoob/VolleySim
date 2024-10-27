@@ -1,15 +1,15 @@
-from typing import Tuple
+from typing import Tuple, List
 
 from Tools.data import TeamData
 from Tools.enum import T1, T2
 from Tools.field import Field, GridField
 from Tools.line_up import LineUp
-from Tools.utils import coin_toss
 
 
 class Game:
 
     def __init__(self, t1: TeamData, t2: TeamData, cant_instances: int):
+        self.last_fault_team = None
         self.last_team_touched: str | None = None
         self.last_player_touched: int | None = None
         self.instance = 0
@@ -103,15 +103,12 @@ class Game:
             self.end_match()
         else:
             self.field.reset()
-            if self.current_set == 5:
-                self.serving_team = T1 if coin_toss() else T2
-            else:
-                self.serving_team = T1 if self.current_set % 2 == 1 else T2
+            self.serving_team = T1 if self.serving_team == T2 else T2
 
             self.field.conf_line_ups(
                 self.t1.line_up,
                 self.t2.line_up,
-                "T2" if self.serving_team == T1 else "T1",
+                self.serving_team
             )
 
     def end_match(self):
@@ -176,6 +173,12 @@ class Game:
         grid = self.field.find_player(dorsal, self.serving_team)
         return grid.position == 1
 
+    def serving_player(self):
+        return self.field.find_player_in_position(1, self.serving_team)
+
+    def serve_done(self):
+        return self.general_touches > 0
+
     def is_ball_on_our_side(self, team: str) -> bool:
         ball_grid = self.field.find_ball()
         if team == T1:
@@ -213,7 +216,7 @@ class Game:
 
     def predict_ball_landing_position(self) -> Tuple[int, int]:
         ball_grid = self.field.find_ball()
-        return (ball_grid.row, ball_grid.col)
+        return ball_grid.row, ball_grid.col
 
     def start_rally(self):
         self.touches = {T1: 0, T2: 0}
@@ -325,3 +328,36 @@ class Game:
 
     def get_players(self, team):
         return self.t1.on_field if team == T1 else self.t2.on_field
+
+    def get_player_stats(self, player: int, team: str):
+        player_stats = self.t1.players_statistics[player] if team == T1 else self.t2.players_statistics[
+            player]
+        return player_stats
+
+    def get_receive_error_percentage(self, player: int, team: str) -> float:
+        player_stats = self.get_player_stats(player, team)
+        if player_stats.total_receives == 0:
+            return 0
+        return player_stats.receives / player_stats.total_receives
+
+    def get_attack_error_percentage(self, player: int, team: str) -> float:
+        player_stats = self.get_player_stats(player, team)
+        if player_stats.total_attacks == 0:
+            return 0
+
+        if player_stats.total_receives == 0:
+            return 0
+
+        return player_stats.receives / player_stats.total_receives
+
+    def get_all_players(self) -> List[Tuple[int, str]]:
+        t1 = [(player, T1) for player in self.t1.on_field]
+        t2 = [(player, T2) for player in self.t2.on_field]
+        return t1 + t2
+
+    def is_front_row(self, player: int, team: str) -> bool:
+        row = self.field.find_player(player, team).row
+        return (team == T1 and 5 < row < 9) or (team != T1 and 9 < row < 13)
+
+    def can_block(self):
+        return self.general_touches > 1

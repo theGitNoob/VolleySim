@@ -1,95 +1,138 @@
-from typing import List, TypedDict, Any
+from random import choice
+from typing import Dict, Tuple, List
 
-from Agents.actions import Action
-from Agents.desire_handler import DesireHandler
-from Agents.handlers import AttackBadReceiverDesireHandler, ServeToBadReceiverDesireHandler, \
-    PassToGoodAttackerDesireHandler, AttackBadReceiverIntentionHandler, ServeToBadReceiveIntentionHandler, \
-    PassToGoodAttackerIntentionHandler
-from Agents.intention_handler import IntentionHandler
+from Agents.actions import Action, Attack, Block, Move, Serve, Set, Nothing, Receive
 from Agents.player_agent import Player
+from Tools.enum import T1, T2
 from Tools.game import Game
 
 
-class Belief(TypedDict):
-    name: str
-    value: Any
-    active: bool
-    # The handler is the class that will handle the belief, typically generating desires
+class VolleyballPerception:
+    def __init__(
+            self,
+            team_score=0,
+            opponent_score=0,
+            ball_possession=None,
+            last_player_touched=None,
+            serving_player=None,
+            serving_team=None,
+            serve_done=False,
+            ball_position=None,
+            team_players_positions=None,  # The players position in the same team {player_id: position}
+            opponent_players_positions=None,  # The players position in the opponent team {player_id: position}
+            my_team=None,
+            opponent_team=None,
+            team_touches=0,
+            front_row=False,
+            can_block=False,
+            distance_to_ball=None,
+    ) -> None:
+        self.can_block = can_block
+        self.front_row = front_row
+        self.team_touches = team_touches
+        self.my_team = my_team
+        self.opponent_players_positions = opponent_players_positions
+        self.team_players_positions = team_players_positions
+        self.serve_done = serve_done
+        self.serving_team = serving_team
+        self.last_player_touched = last_player_touched
+        self.serving_player = serving_player
+        self.ball_possession = ball_possession
+        self.ball_position = ball_position
+        self.opponent_team = opponent_team
+        self.opponent_score = opponent_score
+        self.team_score = team_score
+        self.distance_to_ball = distance_to_ball
 
-
-class Desire(TypedDict):
-    name: str
-    handler: DesireHandler | None
-
-
-class Intention(TypedDict):
-    name: str
-    priority: int
-    handler: IntentionHandler | None
+    def __str__(self):
+        return (
+            f"\n VolleyballPerception:\n"
+            f"  Team score: {self.team_score}\n"
+            f"  Opponent score: {self.opponent_score}\n"
+            f"  Ball possession: {self.ball_possession}\n"
+            f"  Last player touched: {self.last_player_touched}\n"
+            f"  Serving player: {self.serving_player}\n"
+            f"  Serving team: {self.serving_team}\n"
+            f"  Serve done: {self.serve_done}\n"
+            f"  Ball position: {self.ball_position}\n"
+            f"  Team players positions: {self.team_players_positions}\n"
+            f"  Opponent players positions: {self.opponent_players_positions}\n"
+            f"  My team: {self.my_team}\n"
+            f"  Opponent team: {self.opponent_team}\n"
+        )
 
 
 class BdiAgent(Player):
-    def __init__(self, dorsal: int, team: str):
+    def __init__(
+            self,
+            dorsal: int,
+            team: str,
+            rules,
+            active_rules,
+            base_beliefs=None,
+    ):
         super().__init__(dorsal, team, None)
-
-        #### Base Beliefs ####
+        if base_beliefs is None:
+            base_beliefs = {}
+        self.rules = rules
+        self.active_rules = active_rules
         self.game = None
-        self.beliefs = [
-            Belief(name="bad_receiver", value=None, active=False),
-            Belief(name="ball_possession", value=None, active=False),  # This is also an assertion
-            Belief(name="ball_location", value=None, active=False),  # This is also an assertion
-            Belief(name="good_attacker", value=None, active=False),
-            Belief(name="good_defender", value=None, active=False),
-        ]
+        self.perception = VolleyballPerception()
+        #### Base Beliefs ####
+        self.beliefs = {
+            "team_players_positions": {
+            },
+            "opponent_players_positions": {
+            },
+            "ball_position": None,  # self.perception.ball_position,
+            "opponent_strategy": None,  # self.perception.opponent_strategy,
+            "team_score": None,
+            "opponent_score": None,
+            "active_rules": self.active_rules,
+            "rules": self.rules,
+            "serve_done": False,
+            "serving_team": None,
+            "serving_player": None,
+            "my_team": None,
+            "opponent_team": None,
+            "team_touches": 0,
+            "can_block": False,
+            "front_row": False,
+            "distance_to_ball": None,
 
-        #### Base Desires ####
-        self.desires = [
-            Desire(
-                name="attack_bad_receiver",
-                handler=AttackBadReceiverDesireHandler("attack_bad_receiver"),
-            ),
-            Desire(
-                name="serve_to_bad_receiver",
-                handler=ServeToBadReceiverDesireHandler("serve_to_bad_receiver"),
-            ),
-            Desire(
-                name="pass_to_good_attacker",
-                handler=PassToGoodAttackerDesireHandler("pass_to_good_attacker"),
-            ),
-        ]
+            "team_good_attackers": [],
+            "opponent_bad_receivers": [],
+        }
+        self.beliefs = {key: base_beliefs[key] if key in base_beliefs else self.beliefs[key] for key in self.beliefs}
 
-        #### Base Intentions ####
-        self.intentions = [
-            Intention(
-                name="attack_bad_receiver",
-                handler=AttackBadReceiverIntentionHandler("attack_bad_receiver"),
-                priority=1,
-            ),
-            Intention(
-                name="serve_to_bad_receiver",
-                handler=ServeToBadReceiveIntentionHandler("serve_to_bad_receiver"),
-                priority=2,
-            ),
-            Intention(
-                name="pass_to_good_attacker",
-                handler=PassToGoodAttackerIntentionHandler("pass_to_good_attacker"),
-                priority=3,
-            ),
-        ]
+        self.desires = {
+            "move_player": (False, 0),
+            "set_ball": (False, 0),
+            "attack": (False, 0),
+            "block": (False, 0),
+            "serve": (False, 0),
+            "receive": (False, 0),
+            "do_nothing": (False, 0),
 
-        self.desires_handlers: List[DesireHandler] = [
-            AttackBadReceiverDesireHandler("attack_bad_receiver"),
-            ServeToBadReceiverDesireHandler("serve_to_bad_receiver"),
-            PassToGoodAttackerDesireHandler("pass_to_good_attacker"),
-        ]
-        self.intentions_handlers: List[IntentionHandler] = [
+            "serve_to_bad_receivers": (False, 0),
+            "attack_to_bad_receivers": (False, 0),
+            "set_ball_to_good_attackers": (False, 0),
+        }
 
-            PassToGoodAttackerIntentionHandler("attack_bad_receiver"),
-            PassToGoodAttackerIntentionHandler("serve_to_bad_receiver"),
-            PassToGoodAttackerIntentionHandler("pass_to_good_attacker"),
-        ]
+        self.intentions = {
+            "move_player": (False, 0),
+            "set_ball": (False, 0),
+            "attack": (False, 0),
+            "block": (False, 0),
+            "serve": (False, 0),
+            "receive": (False, 0),
+            "do_nothing": (False, 0),
 
-        # self.game: Game = game
+            "serve_to_bad_receivers": (False, 0),
+            "attack_to_bad_receivers": (False, 0),
+            "set_ball_to_good_attackers": (False, 0),
+        }
+
         """
         BDI flow
         1. Get Perceptions
@@ -109,205 +152,487 @@ class BdiAgent(Player):
         - Generate Intentions: The agent generates its intentions based on its desires. Only one intention can be active at a time.
         """
 
-    def brf(self, game: Game, verbose: bool = False):
+    def update_perceptions(self, game: Game) -> VolleyballPerception:
         """
-        La función de revisión de creencias actualiza las creencias del agente
-        basadas en el estado actual del juego.
+        Retrieve the current perceptions of the game for the agent.
+
+        Args:
+            game (Game): The current game state.
+
+        Returns:
+            Dict: A dictionary containing the agent's perceptions.
         """
-        # Obtener percepciones del juego
-        perceptions = self.get_perceptions(game)
         self.game = game
+        perceptions = {
+            "team_score": game.t1_score if self.team == T1 else game.t2_score,
+            "opponent_score": game.t2_score if self.team == T1 else game.t1_score,
+            "ball_possession": game.ball_possession_team,
+            "last_player_touched": game.last_player_touched,
+            "serving_player": game.serving_player().player,
+            "serving_team": game.serving_team,
+            "serve_done": game.serve_done(),
+            "ball_position": (game.field.find_ball().row, game.field.find_ball().col),
+            "team_players_positions": {
+                player: (game.field.find_player(player, self.team).row, game.field.find_player(player, self.team).col)
+                for player in (game.t1.on_field if T1 == self.team else game.t2.on_field)
+            },
+            "opponent_players_positions": {
+                player: (game.field.find_player(player, T1 if self.team == T2 else T2).row,
+                         game.field.find_player(player, T1 if self.team == T2 else T2).col)
+                for player in (game.t1.on_field if T2 == self.team else game.t2.on_field)
+            },
+            "my_team": self.team,
+            "opponent_team": T1 if self.team == T2 else T2,
+            "team_touches": game.touches[self.team],
+            "front_row": game.is_front_row(self.dorsal, self.team),
+            "can_block": game.can_block(),
+            "distance_to_ball": game.field.distance(
+                (game.field.find_ball().row, game.field.find_ball().col),
+                (game.field.find_player(self.dorsal, self.team).row,
+                 game.field.find_player(self.dorsal, self.team).col),
+            ),
 
-        # Actualizar creencias basadas en percepciones
-        for belief in self.beliefs:
-            name = belief['name']
+        }
+        return VolleyballPerception(**perceptions)
 
-            if name == 'bad_receiver':
-                # Supongamos que perceptions['bad_receivers'] es una lista de jugadores malos para recibir
-                bad_receivers = perceptions.get('bad_receivers', [])
-                belief['value'] = bad_receivers
-                belief['active'] = len(bad_receivers) > 0
-
-            elif name == 'ball_possession':
-                # Supongamos que perceptions['ball_possession'] es el jugador que tiene la pelota
-                ball_possession = perceptions.get('ball_possession', None)
-                belief['value'] = ball_possession
-                belief['active'] = ball_possession is not None
-
-            elif name == 'ball_location':
-                # Supongamos que perceptions['ball_location'] es la posición actual de la pelota
-                ball_location = perceptions.get('ball_location', None)
-                belief['value'] = ball_location
-                belief['active'] = ball_location is not None
-
-            elif name == 'good_attacker':
-                # Supongamos que perceptions['good_attackers'] es una lista de buenos atacantes
-                good_attackers = perceptions.get('good_attackers', [])
-                belief['value'] = good_attackers
-                belief['active'] = len(good_attackers) > 0
-
-            elif name == 'good_defender':
-                # Supongamos que perceptions['good_defenders'] es una lista de buenos defensores
-                good_defenders = perceptions.get('good_defenders', [])
-                belief['value'] = good_defenders
-                belief['active'] = len(good_defenders) > 0
-
-            else:
-                self.beliefs.append(Belief(name=name, value=None, active=False))
-
-            if verbose:
-                print(f"Creencia actualizada '{name}': valor={belief['value']}, activa={belief['active']}")
-
-    def generate_desires(self):
+    def brf(self, game, verbose: bool = False):
         """
-        Genera los deseos del agente basados en sus creencias actuales.
+        Update beliefs based on perceptions.
         """
-        self.desires = []
+        self.perception = self.update_perceptions(game)
 
-        for belief in self.beliefs:
-            if belief['active']:
-                if belief['name'] == 'bad_receiver':
-                    handler1 = self.get_desire_handler_by_name('attack_bad_receiver')
-                    if handler1:
-                        desire1 = Desire(name='attack_bad_receiver', handler=handler1)
-                        self.desires.append(desire1)
+        self.beliefs["team_players_positions"] = self.perception.team_players_positions
+        self.beliefs["opponent_players_positions"] = self.perception.opponent_players_positions
+        self.beliefs["ball_position"] = self.perception.ball_position
+        self.beliefs["team_score"] = self.perception.team_score
+        self.beliefs["opponent_score"] = self.perception.opponent_score
+        self.beliefs["ball_possession"] = self.perception.ball_possession
+        self.beliefs["last_player_touched"] = self.perception.last_player_touched
+        self.beliefs["serving_player"] = self.perception.serving_player
+        self.beliefs["serving_team"] = self.perception.serving_team
+        self.beliefs["serve_done"] = self.perception.serve_done
+        self.beliefs["my_team"] = self.perception.my_team
+        self.beliefs["opponent_team"] = self.perception.opponent_team
+        self.beliefs["team_touches"] = self.perception.team_touches
+        self.beliefs["front_row"] = self.perception.front_row
+        self.beliefs["can_block"] = self.perception.can_block
+        self.beliefs["distance_to_ball"] = self.perception.distance_to_ball
 
-                    handler2 = self.get_desire_handler_by_name('serve_to_bad_receiver')
-                    if handler2:
-                        desire2 = Desire(name='serve_to_bad_receiver', handler=handler2)
-                        self.desires.append(desire2)
+        if verbose:
+            print("Updated beliefs:")
+            for item, value in self.beliefs.items():
+                print(f"{item}: {value}")
 
-                elif belief['name'] == 'good_attacker':
-                    handler = self.get_desire_handler_by_name('pass_to_good_attacker')
-                    if handler:
-                        desire = Desire(name='pass_to_good_attacker', handler=handler)
-                        self.desires.append(desire)
-                else:
-                    self.desires.append(Desire(name=belief['name'], handler=None))
-
-    def generate_intentions(self):
+    def generate_intentions(self, verbose=False):
         """
-        Generates intentions based on the current desires.
-
-        This method iterates over the list of desires and for each desire, it retrieves
-        the corresponding intention handler by the desire's name. It then creates an
-        Intention object with the desire's name and the retrieved handler, and appends
-        it to the list of intentions.
-
-
+        Convert desires into intentions.
         """
+        self.intentions["move_player"] = self.desires["move_player"]
+        self.intentions["set_ball"] = self.desires["set_ball"]
+        self.intentions["attack"] = self.desires["attack"]
+        self.intentions["block"] = self.desires["block"]
+        self.intentions["serve"] = self.desires["serve"]
+        self.intentions["receive"] = self.desires["receive"]
+
+        self.intentions["serve_to_bad_receivers"] = self.desires["serve_to_bad_receivers"]
+        self.intentions["attack_to_bad_receivers"] = self.desires["attack_to_bad_receivers"]
+        self.intentions["set_ball_to_good_attackers"] = self.desires["set_ball_to_good_attackers"]
+
+        if verbose:
+            print("Generated intentions:")
+            for intention, value in self.intentions.items():
+                if value:
+                    print(intention)
+
+    def generate_desires(self, verbose=False):
+        """
+        Generate desires based on beliefs and goals.
+        """
+        self.beliefs["active_rules"].sort(key=lambda x: self.beliefs["rules"][x].weight, reverse=True)
+        for rule_id in self.beliefs['active_rules']:
+            self.rules[rule_id].evaluate(self)
+
+        if verbose:
+            print("Generated desires:")
+            for desire, value in self.desires.items():
+                if value:
+                    print(desire)
+
+    def execute_intentions(self, verbose=False) -> Action:
+        """
+        Execute the intentions.
+        """
+        actions: List[Tuple[Action, int]] = []
+        if self.intentions["do_nothing"][0]:
+            actions.append((Nothing(self.dorsal, self.team, self.game), self.intentions["do_nothing"][1]))
+
+        if self.intentions["move_player"][0]:
+            # Logic to move player
+            player_id = self.dorsal
+            position = self.beliefs["team_players_positions"][player_id]
+            target_position = choice(
+                [grid for row in self.game.field.grid for grid in row if
+                 grid.team == self.beliefs['my_team'] and self.game.field.distance(position,
+                                                                                   (grid.row, grid.col)) <= 2])
+            target_position = (target_position.row, target_position.col)
+            actions.append((
+                Move(
+                    position,
+                    target_position,
+                    player_id,
+                    self.team,
+                    self.game,
+                ),
+                self.intentions["move_player"][1])
+            )
+
+        if self.intentions["set_ball"][0]:
+            # Logic to pass ball
+            ball_position = self.beliefs["ball_position"]
+            to_player_id = choice(
+                [player_id for player_id in self.beliefs["team_players_positions"].keys() if player_id != self.dorsal])
+            actions.append(
+                (Set(
+                    ball_position,
+                    self.beliefs["team_players_positions"][to_player_id],
+                    self.dorsal,
+                    self.team,
+                    self.game,
+                ),
+                 self.intentions["set_ball"][1]
+                )
+            )
+
+        if self.intentions["attack"][0]:
+            # Logic to attack ball
+            player_id = self.dorsal
+            target_position = choice(
+                [grid for row in self.game.field.grid for grid in row if grid.team == self.beliefs["opponent_team"]])
+            target_position = (target_position.row, target_position.col)
+
+            actions.append(
+                (Attack(
+                    self.beliefs['ball_position'],
+                    target_position,
+                    player_id,
+                    self.team,
+                    self.game,
+                ),
+                 self.intentions["attack"][1]
+                )
+            )
+
+        if self.intentions["block"][0]:
+            # Logic to block
+            ball_position = self.beliefs["ball_position"]
+            target_position = choice(
+                [grid for row in self.game.field.grid for grid in row if grid.team == self.beliefs["opponent_team"]])
+            target_position = (target_position.row, target_position.col)
+            actions.append(
+                (
+                    Block(
+                        ball_position,
+                        target_position,
+                        self.dorsal,
+                        self.team,
+                        self.game,
+                    ),
+                    self.intentions["block"][1]
+                )
+            )
+
+        if self.intentions["serve"][0]:
+            # Logic to serve
+            player_id = self.dorsal
+            target_position = choice(
+                [grid for row in self.game.field.grid for grid in row if grid.team == self.beliefs["opponent_team"]])
+            target_position = (target_position.row, target_position.col)
+            actions.append((
+                Serve(
+                    self.beliefs["team_players_positions"][player_id],
+                    target_position,
+                    player_id,
+                    self.team,
+                    self.game,
+                ),
+                self.intentions["serve"][1]
+            )
+            )
+
+        if self.intentions["receive"][0]:
+            # Logic to receive the ball
+            player_id = self.dorsal
+            target_position = choice(
+                [grid for row in self.game.field.grid for grid in row if grid.team == self.beliefs["my_team"]])
+            target_position = (target_position.row, target_position.col)
+            actions.append(
+                (
+                    Receive(
+                        self.beliefs["ball_position"],
+                        target_position,
+                        player_id,
+                        self.team,
+                        self.game,
+                    ),
+                    self.intentions["receive"][1]
+                )
+            )
+
+        if self.intentions['serve_to_bad_receivers'][0]:
+            # Logic to serve to bad receivers
+            player_id = self.dorsal
+            target_position = choice(self.beliefs['opponent_bad_receivers'])
+            target_position = self.game.field.find_player(target_position, self.beliefs['opponent_team'])
+            target_position = (target_position.row, target_position.col)
+            actions.append(
+                (
+                    Serve(
+                        self.beliefs["team_players_positions"][player_id],
+                        target_position,
+                        player_id,
+                        self.team,
+                        self.game,
+                    ),
+                    self.intentions["serve_to_bad_receivers"][1]
+                )
+            )
+        if self.intentions['attack_to_bad_receivers'][0]:
+            # Logic to attack to bad receivers
+            player_id = self.dorsal
+            target_position = choice(self.beliefs['opponent_bad_receivers'])
+            target_position = self.game.field.find_player(target_position, self.beliefs['opponent_team'])
+            target_position = (target_position.row, target_position.col)
+
+            actions.append((
+                Attack(
+                    self.beliefs["ball_position"],
+                    target_position,
+                    player_id,
+                    self.team,
+                    self.game,
+                ),
+                self.intentions["attack_to_bad_receivers"][1]
+            )
+            )
+        if self.intentions['set_ball_to_good_attackers'][0]:
+            # Logic to pass to good attackers
+            player_id = self.dorsal
+            target_position = choice(self.beliefs['team_good_attackers'])
+            target_position = self.game.field.find_player(target_position, self.beliefs['my_team'])
+            target_position = (target_position.row, target_position.col)
+
+            actions.append(
+                (
+                    Set(
+                        self.beliefs["ball_position"],
+                        target_position,
+                        player_id,
+                        self.team,
+                        self.game,
+                    ),
+                    self.intentions["set_ball_to_good_attackers"][1]
+                )
+            )
+
+        if verbose:
+            print("Executed intentions:")
+            for action in actions:
+                print(action)
+
+        actions.sort(key=lambda x: x[1], reverse=True)
+
+        return actions[0][0]
+
+    def play(self, simulator, verbose=False) -> Action:
+        self.brf(simulator.game, verbose=verbose)
+        self.generate_desires(verbose=verbose)
+        self.generate_intentions(verbose=verbose)
+        return self.execute_intentions(verbose=verbose)
+
+
+class Rule:
+    def __init__(self, rule_id: str, weight: int, description):
+        self.id = rule_id
+        self.weight = weight
+        self.description = description
+
+    def evaluate(self, agent):
+        pass
+
+
+class CoreRule(Rule):
+    def __init__(self, id, weight, description, desires, conditions):
+        super().__init__(id, weight, description)
+        self.desires = desires
+        self.conditions = conditions
+
+    def evaluate(self, agent: BdiAgent):
+        # Evaluate if all conditions are met and activate desires
+        for condition in self.conditions:
+            if not condition(agent.beliefs):
+                return
         for desire in self.desires:
-            handler = self.get_intention_handler_by_name(desire["name"])
-            self.intentions.append(Intention(name=desire["name"], handler=handler, priority=1))
+            agent.desires[desire] = True
 
-    def add_belief(self, belief: Belief):
-        """
-        Adds a belief to the agent's list of beliefs.
 
-        Args:
-            belief (Belief): The belief to be added to the agent's beliefs.
-        """
-        self.beliefs.append(belief)
+class MovePlayerRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "MovePlayer", 2, "Move player to a better position if the ball is far"
+        )
 
-    def add_desire(self, desire: Desire):
-        """
-        Adds a new desire to the agent's list of desires.
+    def evaluate(self, agent: BdiAgent):
+        agent.desires["move_player"] = True, self.weight
 
-        Args:
-            desire (Desire): The desire to be added to the agent's desires list.
-        """
-        self.desires.append(desire)
 
-    def add_intention(self, intention: Intention):
-        """
-        Adds an intention to the agent's list of intentions.
+class DoNothingRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "DoNothing", 1, "Do nothing"
+        )
 
-        Args:
-            intention (Intention): The intention to be added.
-        """
-        self.intentions.append(intention)
+    def evaluate(self, agent: BdiAgent):
+        agent.desires["do_nothing"] = True, self.weight
 
-    def execute_intentions(self) -> Action:
-        """
-        Executes the highest priority intention from the agent's list of intentions.
 
-        The intentions are sorted based on their priority, and the action associated
-        with the highest priority intention is executed.
+class SetBallRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "SetBall", 3, "Pass the ball to a teammate if in a bad position to attack"
+        )
 
-        Returns:
-            Action: The action resulting from executing the highest priority intention.
-        """
-        self.intentions.sort(key=lambda x: x["priority"])
-        return self.intentions[0]["handler"].get_action(self)
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_position"] and agent.beliefs['serve_done'] and agent.beliefs['team_touches'] == 1 and \
+                agent.beliefs['ball_possession'] == agent.team and agent.beliefs[
+            'distance_to_ball'] <= 2:
+            agent.desires["set_ball"] = True, self.weight
+        else:
+            agent.desires["set_ball"] = False, self.weight
 
-    def get_belief(self, name: str) -> Belief | None:
-        """
-        Retrieve a belief by its name.
 
-        Args:
-            name (str): The name of the belief to retrieve.
+class AttackRule(Rule):
+    def __init__(self):
+        super().__init__("Attack", 3, "Attackthe if in a good position near the net")
 
-        Returns:
-            Belief | None: The belief with the specified name if found, otherwise None.
-        """
-        for belief in self.beliefs:
-            if belief["name"] == name:
-                return belief
-        return None
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
+            "team_touches"] > 1 and agent.beliefs["distance_to_ball"] < 2:
+            agent.desires["attack"] = True, self.weight
+        else:
+            agent.desires["attack"] = False, self.weight
 
-    def get_desire_handler_by_name(self, name: str) -> DesireHandler | None:
-        """
-        Retrieve a list of DesireHandler objects that match the given desire name.
 
-        Args:
-            name (str): The name of the desire to match.
+class BlockRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "Block", 3, "Block if the opponent is about to attack the ball"
+        )
 
-        Returns:
-            DesireHandler | None: The desire handler with the specified name if found, otherwise None.
-            
-        """
-        for handler in self.desires_handlers:
-            if handler.desire_name == name:
-                return handler
-        return None
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
+            "team_touches"] == 0 and agent.beliefs["front_row"] and agent.beliefs["can_block"] and agent.beliefs[
+            'distance_to_ball'] <= 2:
+            agent.desires["block"] = True, self.weight
+        else:
+            agent.desires["block"] = False, self.weight
 
-    def get_intention_handler_by_name(self, name: str) -> IntentionHandler | None:
-        """
-        Retrieve an intention handler by its name.
 
-        This method iterates over the list of intention handlers and returns the handler
-        whose intention name matches the provided name.
+class ServeRule(Rule):
+    def __init__(self):
+        super().__init__("Serve", 10, "Serve the ball if it's the team's turn to serve")
 
-        Args:
-            name (str): The name of the intention to match.
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["serving_player"] == agent.dorsal and agent.beliefs['serving_team'] == agent.team and \
+                agent.beliefs['serve_done'] == False:
+            agent.desires["serve"] = True, self.weight
+        else:
+            agent.desires["serve"] = False, self.weight
 
-        Returns:
-            IntentionHandler | None: The intention handler with the specified name if found, otherwise None.
-        """
 
-        for handler in self.intentions_handlers:
-            if handler.intention_name == name:
-                return handler
-        return None
+class ServeToBadReceiversRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "ServeToBadReceivers", 11, "Serve to players who are bad at receiving"
+        )
 
-    def play(self, simulator):
-        """
-        Executes the agent's decision-making process in the given simulator.
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["serve_done"] == False and agent.beliefs["serving_team"] == agent.team and agent.beliefs[
+            "serving_player"] == agent.dorsal \
+                and len(agent.beliefs["opponent_bad_receivers"]) > 0:
+            agent.desires["serve_to_bad_receivers"] = True, self.weight
+        else:
+            agent.desires["serve_to_bad_receivers"] = False, self.weight
 
-        This method performs the following steps:
-        1. Retrieves the agent's current perceptions.
-        2. Updates the agent's beliefs based on the perceptions.
-        3. Generates the agent's desires based on the updated beliefs.
-        4. Generates the agent's intentions based on the desires.
-        5. Executes the agent's intentions and returns the result.
 
-        Args:
-            simulator (SimulatorAgent): The simulator in which the agent is operating.
+class SetBallToGoodAttackersRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "SetBallToGoodAttackers", 5, "Pass the ball to players who are good at attacking"
+        )
 
-        Returns:
-            The result of executing the agent's intentions.
-        """
-        self.brf(simulator.game)
-        self.generate_desires()
-        self.generate_intentions()
-        return self.execute_intentions()
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
+            "team_touches"] == 1 and len(agent.beliefs["team_good_attackers"]) > 0 and agent.beliefs[
+            'distance_to_ball'] <= 2:
+            agent.desires["set_ball_to_good_attackers"] = True, self.weight
+        else:
+            agent.desires["set_ball_to_good_attackers"] = False, self.weight
+
+
+class AttackToBadReceiversRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "AttackToBadReceivers", 4, "Attack to players who are bad at receiving"
+        )
+
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
+            "team_touches"] > 1 and len(agent.beliefs["opponent_bad_receivers"]) > 0:
+            agent.desires["attack_to_bad_receivers"] = True, self.weight
+        else:
+            agent.desires["attack_to_bad_receivers"] = False, self.weight
+
+
+class ReceiveRule(Rule):
+    def __init__(self):
+        super().__init__(
+            "Receive", 3, "Receive the ball"
+        )
+
+    def evaluate(self, agent: BdiAgent):
+        if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
+            "team_touches"] == 0 and agent.beliefs[
+            'distance_to_ball'] <= 2:
+            agent.desires["receive"] = True, self.weight
+        else:
+            agent.desires["receive"] = False, self.weight
+
+
+base_rules = {
+    "MovePlayer": MovePlayerRule(),
+    "SetBall": SetBallRule(),
+    "AttackBall": AttackRule(),
+    "Block": BlockRule(),
+    "Serve": ServeRule(),
+    "ServeToBadReceivers": ServeToBadReceiversRule(),
+    "AttackToBadReceivers": AttackToBadReceiversRule(),
+    "SetBallToGoodAttackers": SetBallToGoodAttackersRule(),
+    "Receive": ReceiveRule(),
+}
+
+base_active_rules = [
+    "MovePlayer",
+    "SetBall",
+    "AttackBall",
+    "Block",
+    "Serve",
+    "ServeToBadReceivers",
+    "AttackToBadReceivers",
+    "SetBallToGoodAttackers",
+    "Receive",
+]
+
+base_beliefs_t1 = {
+    "team_good_attackers": [180],
+    "opponent_bad_receivers": [180],
+}

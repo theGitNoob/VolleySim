@@ -30,7 +30,7 @@ class AttackBadReceiverIntentionHandler(IntentionHandler):
             bad_receiver_dorsal = bad_receiver["value"]
             if bad_receiver_dorsal is not None:
                 return Attack(
-                    src=agent.game.field.find_player(agent.dorsal),
+                    src=agent.game.field.find_player(agent.dorsal, agent.team),
                     dest=agent.game.field.find_player(bad_receiver_dorsal),
                     player=bad_receiver_dorsal,
                     team=agent.team,
