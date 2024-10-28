@@ -190,7 +190,7 @@ class Game:
         player_grid = self.field.find_player(dorsal, team)
         ball_grid = self.field.find_ball()
         return (
-                self.field.int_distance(
+                self.field.distance(
                     (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
                 )
                 <= 3
@@ -246,7 +246,7 @@ class Game:
         min_distance = float("inf")
         for player_id in self.t1.on_field if team == T1 else self.t2.on_field:
             player_grid = self.field.find_player(player_id, team)
-            distance = self.field.int_distance(
+            distance = self.field.distance(
                 (player_grid.row, player_grid.col), (ball_grid.row, ball_grid.col)
             )
             if distance < min_distance:
@@ -324,7 +324,7 @@ class Game:
             self.t2.time_outs += 1
 
     def get_team_sets(self, team: str):
-        return self.t1_sets if team == T1 else self.t1_sets
+        return self.t1_sets if team == T1 else self.t2_sets
 
     def get_players(self, team):
         return self.t1.on_field if team == T1 else self.t2.on_field

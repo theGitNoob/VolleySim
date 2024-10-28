@@ -26,6 +26,7 @@ class VolleyballPerception:
             front_row=False,
             can_block=False,
             distance_to_ball=None,
+            last_team_touched=None
     ) -> None:
         self.can_block = can_block
         self.front_row = front_row
@@ -43,6 +44,7 @@ class VolleyballPerception:
         self.opponent_score = opponent_score
         self.team_score = team_score
         self.distance_to_ball = distance_to_ball
+        self.last_team_touched = last_team_touched
 
     def __str__(self):
         return (
@@ -99,6 +101,8 @@ class BdiAgent(Player):
             "can_block": False,
             "front_row": False,
             "distance_to_ball": None,
+            "last_player_touched": None,
+            "last_team_touched": None,
 
             "team_good_attackers": [],
             "opponent_bad_receivers": [],
@@ -191,6 +195,7 @@ class BdiAgent(Player):
                 (game.field.find_player(self.dorsal, self.team).row,
                  game.field.find_player(self.dorsal, self.team).col),
             ),
+            "last_team_touched": game.last_team_touched
 
         }
         return VolleyballPerception(**perceptions)
@@ -217,6 +222,7 @@ class BdiAgent(Player):
         self.beliefs["front_row"] = self.perception.front_row
         self.beliefs["can_block"] = self.perception.can_block
         self.beliefs["distance_to_ball"] = self.perception.distance_to_ball
+        self.beliefs["last_team_touched"] = self.perception.last_team_touched
 
         if verbose:
             print("Updated beliefs:")
@@ -504,7 +510,8 @@ class SetBallRule(Rule):
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["ball_position"] and agent.beliefs['serve_done'] and agent.beliefs['team_touches'] == 1 and \
                 agent.beliefs['ball_possession'] == agent.team and agent.beliefs[
-            'distance_to_ball'] <= 2:
+            'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
+                                                                                                                "last_team_touched"] == agent.team else True):
             agent.desires["set_ball"] = True, self.weight
         else:
             agent.desires["set_ball"] = False, self.weight
@@ -516,7 +523,9 @@ class AttackRule(Rule):
 
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
-            "team_touches"] > 1 and agent.beliefs["distance_to_ball"] < 2:
+            "team_touches"] > 1 and agent.beliefs["distance_to_ball"] < 2 and (agent.beliefs[
+            "last_player_touched"] != agent.dorsal if agent.beliefs[
+                                                                     "last_team_touched"] == agent.team else True):
             agent.desires["attack"] = True, self.weight
         else:
             agent.desires["attack"] = False, self.weight
@@ -573,7 +582,8 @@ class SetBallToGoodAttackersRule(Rule):
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
             "team_touches"] == 1 and len(agent.beliefs["team_good_attackers"]) > 0 and agent.beliefs[
-            'distance_to_ball'] <= 2:
+            'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
+                                                                                                                "last_team_touched"] == agent.team else True):
             agent.desires["set_ball_to_good_attackers"] = True, self.weight
         else:
             agent.desires["set_ball_to_good_attackers"] = False, self.weight
@@ -587,7 +597,9 @@ class AttackToBadReceiversRule(Rule):
 
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
-            "team_touches"] > 1 and len(agent.beliefs["opponent_bad_receivers"]) > 0:
+            "team_touches"] > 1 and len(agent.beliefs["opponent_bad_receivers"]) > 0 and (agent.beliefs[
+            "last_player_touched"] != agent.dorsal if agent.beliefs[
+                                                                     "last_team_touched"] == agent.team else True):
             agent.desires["attack_to_bad_receivers"] = True, self.weight
         else:
             agent.desires["attack_to_bad_receivers"] = False, self.weight
@@ -602,7 +614,8 @@ class ReceiveRule(Rule):
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
             "team_touches"] == 0 and agent.beliefs[
-            'distance_to_ball'] <= 2:
+               'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
+                                                                                                        "last_team_touched"] == agent.team else True):
             agent.desires["receive"] = True, self.weight
         else:
             agent.desires["receive"] = False, self.weight

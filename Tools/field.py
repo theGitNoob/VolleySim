@@ -180,12 +180,6 @@ class Field:
     def distance(src: Tuple[int, int], dest: Tuple[int, int]) -> float:
         xs, ys = src
         xd, yd = dest
-        return math.sqrt((xs - xd) ** 2 + (ys - yd) ** 2)
-
-    @staticmethod
-    def int_distance(src: Tuple[int, int], dest: Tuple[int, int]) -> int:
-        xs, ys = src
-        xd, yd = dest
         return max(abs(xs - xd), abs(ys - yd))
 
     def find_player(self, dorsal: int, team: str) -> GridField:

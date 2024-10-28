@@ -31,6 +31,16 @@ random_vs_minimax = StartingParams(
     "random_vs_minimax",
 )
 
+bdi_vs_random = StartingParams(
+    SimulationParams(
+        team_names,
+        (LineUpStandardStrategy(), LineUpStandardStrategy()),
+        (ActionSimulateStrategy(), ActionSimulateStrategy()),
+        (None, RandomStrategy()),
+    ),
+    "bdi_vs_random",
+)
+
 # all_random = StartingParams(
 #     SimulationParams(
 #         team_names,
