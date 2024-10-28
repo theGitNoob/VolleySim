@@ -1,4 +1,8 @@
+from random import choice
 from typing import Dict, Tuple, List
+
+from Demos.win32cred_demo import target
+from fontTools.misc.cython import returns
 
 from Agents.actions import Action, Attack, Block, Move, Serve, Set, Nothing, Receive
 from Agents.player_agent import Player
@@ -238,32 +242,32 @@ class BdiAgent(Player):
         Convert  only active desires into intentions.
         """
         self.intentions['move_player'] = [(i[1], i[2]) for i in self.desires['move_player'] if i[0]]
-        self.intentions['move_player'].sort(key=lambda x: x[1], reverse=True)
+        self.intentions['move_player'].sort(key=lambda x: x[0], reverse=True)
         self.intentions['move_player'] = self.intentions['move_player'][0] if len(
             self.intentions['move_player']) > 0 else []
 
         self.intentions["set_ball"] = [(i[1], i[2]) for i in self.desires["set_ball"] if i[0]]
-        self.intentions["set_ball"].sort(key=lambda x: x[1], reverse=True)
+        self.intentions["set_ball"].sort(key=lambda x: x[0], reverse=True)
         self.intentions['set_ball'] = self.intentions['set_ball'][0] if len(self.intentions['set_ball']) > 0 else None
 
         self.intentions["attack"] = [(i[1], i[2]) for i in self.desires["attack"] if i[0]]
-        self.intentions["attack"].sort(key=lambda x: x[1], reverse=True)
+        self.intentions["attack"].sort(key=lambda x: x[0], reverse=True)
         self.intentions['attack'] = self.intentions['attack'][0] if len(self.intentions['attack']) > 0 else None
 
         self.intentions["block"] = [(i[1], i[2]) for i in self.desires["block"] if i[0]]
-        self.intentions["block"].sort(key=lambda x: x[1], reverse=True)
+        self.intentions["block"].sort(key=lambda x: x[0], reverse=True)
         self.intentions['block'] = self.intentions['block'][0] if len(self.intentions['block']) > 0 else None
 
         self.intentions["serve"] = [(i[1], i[2]) for i in self.desires["serve"] if i[0]]
-        self.intentions["serve"].sort(key=lambda x: x[1], reverse=True)
+        self.intentions["serve"].sort(key=lambda x: x[0], reverse=True)
         self.intentions['serve'] = self.intentions['serve'][0] if len(self.intentions['serve']) > 0 else None
 
         self.intentions["receive"] = [(i[1], i[2]) for i in self.desires["receive"] if i[0]]
-        self.intentions["receive"].sort(key=lambda x: x[1], reverse=True)
+        self.intentions["receive"].sort(key=lambda x: x[0], reverse=True)
         self.intentions['receive'] = self.intentions['receive'][0] if len(self.intentions['receive']) > 0 else None
 
         self.intentions['do_nothing'] = [(i[1], i[2]) for i in self.desires['do_nothing'] if i[0]]
-        self.intentions['do_nothing'].sort(key=lambda x: x[1], reverse=True)
+        self.intentions['do_nothing'].sort(key=lambda x: x[0], reverse=True)
         self.intentions['do_nothing'] = self.intentions['do_nothing'][0] if len(
             self.intentions['do_nothing']) > 0 else None
 
@@ -418,7 +422,8 @@ class MovePlayerRule(Rule):
         )
 
     def evaluate(self, agent: BdiAgent):
-        agent.desires["move_player"].append(([True, self.weight, (0, 0)]))
+        agent.desires["move_player"].append(([True, self.weight, selectAdjacentPosition(agent.game, agent.beliefs[
+            "team_players_positions"][agent.dorsal])]))
 
 
 class DoNothingRule(Rule):
@@ -442,7 +447,7 @@ class SetBallRule(Rule):
                 agent.beliefs['ball_possession'] == agent.team and agent.beliefs[
             'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
                                                                                                       "last_team_touched"] == agent.team else True):
-            agent.desires["set_ball"].append((True, self.weight, (0, 0)))
+            agent.desires["set_ball"].append((True, self.weight, selectRandomFriendlyPosition(agent.game)))
         else:
             agent.desires["set_ball"].append((False, self.weight))
 
@@ -455,10 +460,9 @@ class AttackRule(Rule):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
             "team_touches"] > 1 and agent.beliefs["distance_to_ball"] < 2 and (agent.beliefs[
                                                                                    "last_player_touched"] != agent.dorsal if
-        # TODO:
         agent.beliefs[
             "last_team_touched"] == agent.team else True):
-            agent.desires["attack"].append((True, self.weight, (0, 0)))
+            agent.desires["attack"].append((True, self.weight, selectRandomEnemyPosition(agent.game)))
         else:
             agent.desires["attack"].append((False, self.weight))
 
@@ -473,7 +477,7 @@ class BlockRule(Rule):
         if agent.beliefs["ball_possession"] == agent.team and agent.beliefs["serve_done"] and agent.beliefs[
             "team_touches"] == 0 and agent.beliefs["front_row"] and agent.beliefs["can_block"] and agent.beliefs[
             'distance_to_ball'] <= 2:
-            agent.desires["block"].append((True, self.weight, (0, 0)))
+            agent.desires["block"].append((True, self.weight, selectRandomEnemyPosition(agent.game)))
         else:
             agent.desires["block"].append((False, self.weight))
 
@@ -485,7 +489,7 @@ class ServeRule(Rule):
     def evaluate(self, agent: BdiAgent):
         if agent.beliefs["serving_player"] == agent.dorsal and agent.beliefs['serving_team'] == agent.team and \
                 agent.beliefs['serve_done'] == False:
-            agent.desires["serve"].append((True, self.weight, (0, 0)))
+            agent.desires["serve"].append((True, self.weight, selectRandomEnemyPosition(agent.game)))
         else:
             agent.desires["serve"].append((False, self.weight))
 
@@ -500,7 +504,8 @@ class ServeToBadReceiversRule(Rule):
         if agent.beliefs["serve_done"] == False and agent.beliefs["serving_team"] == agent.team and agent.beliefs[
             "serving_player"] == agent.dorsal \
                 and len(agent.beliefs["opponent_bad_receivers"]) > 0:
-            agent.desires["serve"].append((True, self.weight, (0, 0)))
+            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0], agent.beliefs['my_team'])
+            agent.desires["serve"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["serve"].append((False, self.weight))
 
@@ -516,7 +521,8 @@ class SetBallToGoodAttackersRule(Rule):
             "team_touches"] == 1 and len(agent.beliefs["team_good_attackers"]) > 0 and agent.beliefs[
             'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
                                                                                                       "last_team_touched"] == agent.team else True):
-            agent.desires["set_ball"].append((True, self.weight, (0, 0)))
+            target_dest = agent.game.field.find_player(agent.beliefs["team_good_attackers"][0], agent.beliefs['my_team'])
+            agent.desires["set_ball"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["set_ball"].append((False, self.weight))
 
@@ -533,7 +539,8 @@ class AttackToBadReceiversRule(Rule):
                                                                                               "last_player_touched"] != agent.dorsal if
         agent.beliefs[
             "last_team_touched"] == agent.team else True):
-            agent.desires["attack"].append((True, self.weight, (0, 0)))
+            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0], agent.beliefs['opponent_team'])
+            agent.desires["attack"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["attack"].append((False, self.weight))
 
@@ -549,9 +556,38 @@ class ReceiveRule(Rule):
             "team_touches"] == 0 and agent.beliefs[
             'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
                                                                                                       "last_team_touched"] == agent.team else True):
-            agent.desires["receive"].append((True, self.weight, (0, 0)))
+            agent.desires["receive"].append((True, self.weight, selectRandomPosition(agent.game)))
         else:
             agent.desires["receive"].append((False, self.weight))
+
+
+def selectRandomPosition(game: Game) -> Tuple[int, int] | None:
+    dest = choice(
+        [grid for row in game.field.grid for grid in row if not grid.is_net])
+    return dest.row, dest.col
+
+
+def selectRandomEnemyPosition(game: Game) -> Tuple[int, int] | None:
+    dest = choice(
+        [grid for row in game.field.grid for grid in row if not grid.is_net and grid.team != game.ball_possession_team])
+    return dest.row, dest.col
+
+
+def selectRandomFriendlyPosition(game: Game) -> Tuple[int, int] | None:
+    dest = choice(
+        [grid for row in game.field.grid for grid in row if not grid.is_net and grid.team == game.ball_possession_team])
+    return dest.row, dest.col
+
+
+def selectAdjacentPosition(game: Game, position: Tuple[int, int]) -> Tuple[int, int] | None:
+    row, col = position
+    adjacent_positions = [
+        (row + 1, col), (row - 1, col), (row, col + 1), (row, col - 1)
+    ]
+    valid_positions = [
+        pos for pos in adjacent_positions if 0 <= pos[0] < game.field.rows and 0 <= pos[1] < game.field.columns
+    ]
+    return choice(valid_positions) if valid_positions else None
 
 
 base_rules = {
