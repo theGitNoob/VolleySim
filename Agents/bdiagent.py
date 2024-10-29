@@ -1,9 +1,6 @@
 from random import choice
 from typing import Dict, Tuple, List
 
-from Demos.win32cred_demo import target
-from fontTools.misc.cython import returns
-
 from Agents.actions import Action, Attack, Block, Move, Serve, Set, Nothing, Receive
 from Agents.player_agent import Player
 from Tools.enum import T1, T2
@@ -504,7 +501,8 @@ class ServeToBadReceiversRule(Rule):
         if agent.beliefs["serve_done"] == False and agent.beliefs["serving_team"] == agent.team and agent.beliefs[
             "serving_player"] == agent.dorsal \
                 and len(agent.beliefs["opponent_bad_receivers"]) > 0:
-            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0], agent.beliefs['my_team'])
+            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0],
+                                                       agent.beliefs['my_team'])
             agent.desires["serve"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["serve"].append((False, self.weight))
@@ -521,7 +519,8 @@ class SetBallToGoodAttackersRule(Rule):
             "team_touches"] == 1 and len(agent.beliefs["team_good_attackers"]) > 0 and agent.beliefs[
             'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
                                                                                                       "last_team_touched"] == agent.team else True):
-            target_dest = agent.game.field.find_player(agent.beliefs["team_good_attackers"][0], agent.beliefs['my_team'])
+            target_dest = agent.game.field.find_player(agent.beliefs["team_good_attackers"][0],
+                                                       agent.beliefs['my_team'])
             agent.desires["set_ball"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["set_ball"].append((False, self.weight))
@@ -539,7 +538,8 @@ class AttackToBadReceiversRule(Rule):
                                                                                               "last_player_touched"] != agent.dorsal if
         agent.beliefs[
             "last_team_touched"] == agent.team else True):
-            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0], agent.beliefs['opponent_team'])
+            target_dest = agent.game.field.find_player(agent.beliefs["opponent_bad_receivers"][0],
+                                                       agent.beliefs['opponent_team'])
             agent.desires["attack"].append((True, self.weight, (target_dest.row, target_dest.col)))
         else:
             agent.desires["attack"].append((False, self.weight))
