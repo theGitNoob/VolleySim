@@ -26,7 +26,10 @@ class VolleyballPerception:
             front_row=False,
             can_block=False,
             distance_to_ball=None,
-            last_team_touched=None
+            last_team_touched=None,
+            team_players_statistics=None,
+            opponent_players_statistics=None,
+
     ) -> None:
         self.can_block = can_block
         self.front_row = front_row
@@ -45,6 +48,8 @@ class VolleyballPerception:
         self.team_score = team_score
         self.distance_to_ball = distance_to_ball
         self.last_team_touched = last_team_touched
+        self.team_players_statistics = team_players_statistics
+        self.opponent_players_statistics = opponent_players_statistics
 
     def __str__(self):
         return (
@@ -104,6 +109,9 @@ class BdiAgent(Player):
             "last_player_touched": None,
             "last_team_touched": None,
 
+            "team_players_statistics": {},
+            "opponent_players_statistics": {},
+
             "team_good_attackers": [],
             "opponent_bad_receivers": [],
         }
@@ -134,7 +142,7 @@ class BdiAgent(Player):
         BDI flow
         1. Get Perceptions
         2. BRF
-        3. Generate Desires
+        3. Generate and filter Desires
         4. Generate Intentions
         5. Execute Intentions
 
@@ -160,6 +168,8 @@ class BdiAgent(Player):
             Dict: A dictionary containing the agent's perceptions.
         """
         self.game = game
+        team_stats = game.t1.players_statistics if self.team == T1 else game.t2.players_statistics
+        opponent_stats = game.t1.players_statistics if self.team == T2 else game.t2.players_statistics
         perceptions = {
             "team_score": game.t1_score if self.team == T1 else game.t2_score,
             "opponent_score": game.t2_score if self.team == T1 else game.t1_score,
@@ -188,7 +198,13 @@ class BdiAgent(Player):
                 (game.field.find_player(self.dorsal, self.team).row,
                  game.field.find_player(self.dorsal, self.team).col),
             ),
-            "last_team_touched": game.last_team_touched
+            "last_team_touched": game.last_team_touched,
+            "team_players_statistics": {
+                **team_stats,
+            },
+            "opponent_players_statistics": {
+                **opponent_stats,
+            },
 
         }
         return VolleyballPerception(**perceptions)
