@@ -572,7 +572,7 @@ class ReceiveRule(Rule):
             "team_touches"] == 0 and agent.beliefs[
             'distance_to_ball'] <= 2 and (agent.beliefs["last_player_touched"] != agent.dorsal if agent.beliefs[
                                                                                                       "last_team_touched"] == agent.team else True):
-            agent.desires["receive"].append((True, self.weight, selectRandomPosition(agent.game)))
+            agent.desires["receive"].append((True, self.weight, selectSetterPlayerPosition(agent.game, agent.team)))
         else:
             agent.desires["receive"].append((False, self.weight))
 
@@ -604,6 +604,15 @@ def selectAdjacentPosition(game: Game, position: Tuple[int, int]) -> Tuple[int, 
         pos for pos in adjacent_positions if 0 <= pos[0] < game.field.rows and 0 <= pos[1] < game.field.columns
     ]
     return choice(valid_positions) if valid_positions else None
+
+
+def selectSetterPlayerPosition(game: Game, team: str) -> Tuple[int, int] | None:
+    for grid in game.field.grid:
+        for g in grid:
+            if g.team == team and g.player > -1 and (game.t1.get_player_role(g.player) == "S" if team == T1 else game.t2.get_player_role(
+                    g.player) == "S"):
+                return g.row, g.col
+    return None
 
 
 base_rules = {
